@@ -1,13 +1,16 @@
 import type { Plan } from '@/app/components/billing/type'
 import { Menu, MenuButton, MenuItems, Transition } from '@headlessui/react'
-import { RiArrowDownSLine } from '@remixicon/react'
-import { Fragment } from 'react'
+import { RiAddLine, RiArrowDownSLine } from '@remixicon/react'
+import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useContext } from 'use-context-selector'
 import { ToastContext } from '@/app/components/base/toast'
+import Button from '@/app/components/base/button'
+import Input from '@/app/components/base/input'
+import Modal from '@/app/components/base/modal'
 import PlanBadge from '@/app/components/header/plan-badge'
 import { useWorkspacesContext } from '@/context/workspace-context'
-import { switchWorkspace } from '@/service/common'
+import { createWorkspace, switchWorkspace } from '@/service/common'
 import { cn } from '@/utils/classnames'
 import { basePath } from '@/utils/var'
 
@@ -16,6 +19,8 @@ const WorkplaceSelector = () => {
   const { notify } = useContext(ToastContext)
   const { workspaces } = useWorkspacesContext()
   const currentWorkspace = workspaces.find(v => v.current)
+  const [isShowCreateModal, setIsShowCreateModal] = useState(false)
+  const [newWorkspaceName, setNewWorkspaceName] = useState('')
 
   const handleSwitchWorkspace = async (tenant_id: string) => {
     try {
@@ -27,6 +32,24 @@ const WorkplaceSelector = () => {
     }
     catch {
       notify({ type: 'error', message: t('common.provider.saveFailed') })
+    }
+  }
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) {
+      notify({ type: 'error', message: t('common.errorMsg.fieldRequired', { field: t('common.node.name') }) })
+      return
+    }
+    try {
+      const { id } = await createWorkspace({ body: { name: newWorkspaceName } })
+      notify({ type: 'success', message: t('common.api.actionSuccess') })
+      setIsShowCreateModal(false)
+      setNewWorkspaceName('')
+      // Switch to the new workspace
+      await handleSwitchWorkspace(id)
+    }
+    catch {
+      notify({ type: 'error', message: t('common.api.actionFailed') })
     }
   }
 
@@ -83,9 +106,42 @@ const WorkplaceSelector = () => {
                       </div>
                     ))
                   }
+                  <div className="my-1 h-[1px] w-full bg-divider-subtle" />
+                  <div
+                    className="flex cursor-pointer items-center gap-2 self-stretch rounded-lg py-2 pl-3 pr-2 hover:bg-state-base-hover"
+                    onClick={() => setIsShowCreateModal(true)}
+                  >
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-divider-deep text-text-tertiary">
+                      <RiAddLine className="h-4 w-4" />
+                    </div>
+                    <div className="system-md-regular text-text-secondary">{t('common.userProfile.createWorkspace')}</div>
+                  </div>
                 </div>
               </MenuItems>
             </Transition>
+
+            <Modal
+              isShow={isShowCreateModal}
+              onClose={() => setIsShowCreateModal(false)}
+              title={t('common.userProfile.createWorkspace')}
+              className="w-[400px]"
+            >
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="system-sm-medium mb-1 block text-text-secondary">{t('common.account.workspaceName')}</label>
+                  <Input
+                    value={newWorkspaceName}
+                    onChange={(e) => setNewWorkspaceName(e.target.value)}
+                    placeholder={t('common.account.workspaceNamePlaceholder') || ''}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button onClick={() => setIsShowCreateModal(false)}>{t('common.operation.cancel')}</Button>
+                  <Button variant="primary" onClick={handleCreateWorkspace}>{t('common.operation.create')}</Button>
+                </div>
+              </div>
+            </Modal>
           </>
         )
       }

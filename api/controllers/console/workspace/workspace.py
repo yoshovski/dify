@@ -7,6 +7,13 @@ from sqlalchemy import select
 from werkzeug.exceptions import Unauthorized
 
 import services
+from events.tenant_event import tenant_was_created
+from flask_restx import Resource, fields, marshal, marshal_with
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from werkzeug.exceptions import Unauthorized
+
+import services
 from controllers.common.errors import (
     FilenameNotExistsError,
     FileTooLargeError,
@@ -54,6 +61,10 @@ class WorkspaceInfoPayload(BaseModel):
     name: str
 
 
+class WorkspaceCreatePayload(BaseModel):
+    name: str = Field(..., max_length=50)
+
+
 def reg(cls: type[BaseModel]):
     console_ns.schema_model(cls.__name__, cls.model_json_schema(ref_template=DEFAULT_REF_TEMPLATE_SWAGGER_2_0))
 
@@ -62,6 +73,7 @@ reg(WorkspaceListQuery)
 reg(SwitchWorkspacePayload)
 reg(WorkspaceCustomConfigPayload)
 reg(WorkspaceInfoPayload)
+reg(WorkspaceCreatePayload)
 
 provider_fields = {
     "provider_name": fields.String,
@@ -120,6 +132,32 @@ class TenantListApi(Resource):
             tenant_dicts.append(tenant_dict)
 
         return {"workspaces": marshal(tenant_dicts, tenants_fields)}, 200
+
+    @console_ns.expect(console_ns.models[WorkspaceCreatePayload.__name__])
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self):
+        current_user, _ = current_account_with_tenant()
+        payload = console_ns.payload or {}
+        args = WorkspaceCreatePayload.model_validate(payload)
+
+        # Check if user is allowed to create workspace
+        system_features = FeatureService.get_system_features()
+        if not system_features.is_allow_create_workspace:
+            raise Unauthorized("Workspace creation is not allowed.")
+
+        if not system_features.license.workspaces.is_available():
+             raise Unauthorized("Workspace limit reached.")
+
+        # Create tenant
+        tenant = TenantService.create_tenant(args.name, is_from_dashboard=True)
+        TenantService.create_tenant_member(tenant, current_user, role="owner")
+        
+        tenant_was_created.send(tenant)
+
+        # Return the created tenant info (using the same structure as specific tenant info)
+        return WorkspaceService.get_tenant_info(tenant), 201
 
 
 @console_ns.route("/all-workspaces")

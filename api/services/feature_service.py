@@ -186,6 +186,32 @@ class FeatureService:
             features.knowledge_pipeline.publish_enabled = True
             cls._fulfill_params_from_workspace_info(features, tenant_id)
 
+        # Force unlock features
+        features.billing.enabled = True
+        features.billing.subscription.plan = "professional"
+        features.billing.subscription.interval = "year"
+        features.can_replace_logo = True
+        features.model_load_balancing_enabled = True
+        features.dataset_operator_enabled = True
+        features.webapp_copyright_enabled = True
+        features.knowledge_pipeline.publish_enabled = True
+        features.is_allow_transfer_workspace = True
+        
+        # Remove limits
+        features.members.limit = 0
+        features.members.size = 0
+        features.apps.limit = 0
+        features.apps.size = 0
+        features.vector_space.limit = 0
+        features.vector_space.size = 0
+        features.annotation_quota_limit.limit = 0
+        features.annotation_quota_limit.size = 0
+        features.documents_upload_quota.limit = 0
+        features.documents_upload_quota.size = 0
+        features.workspace_members.enabled = False
+        features.workspace_members.limit = 0
+        features.workspace_members.size = 0
+
         return features
 
     @classmethod
@@ -213,6 +239,13 @@ class FeatureService:
 
         if dify_config.MARKETPLACE_ENABLED:
             system_features.enable_marketplace = True
+
+        # Force unlock system features
+        system_features.is_allow_create_workspace = True
+        system_features.license.status = LicenseStatus.ACTIVE
+        system_features.license.workspaces.enabled = False
+        system_features.license.workspaces.limit = 0
+        system_features.license.workspaces.size = 0
 
         return system_features
 

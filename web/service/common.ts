@@ -143,6 +143,10 @@ export const updateCurrentWorkspace = ({ url, body }: { url: string, body: Recor
   return post<ICurrentWorkspace>(url, { body })
 }
 
+export const createWorkspace = ({ body }: { body: { name: string } }): Promise<ICurrentWorkspace> => {
+  return post<ICurrentWorkspace>('/workspaces', { body })
+}
+
 export const fetchWorkspaces = ({ url, params }: { url: string, params: Record<string, any> }): Promise<{ workspaces: IWorkspace[] }> => {
   return get<{ workspaces: IWorkspace[] }>(url, { params })
 }
