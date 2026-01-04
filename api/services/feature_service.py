@@ -199,7 +199,7 @@ class FeatureService:
         )
 
         # Force unlock features
-        features.billing.enabled = True
+        features.billing.enabled = False
         features.billing.subscription.plan = "professional"
         features.billing.subscription.interval = "year"
         features.can_replace_logo = True
