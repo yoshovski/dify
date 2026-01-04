@@ -101,6 +101,7 @@ tenants_fields = {
     "status": fields.String,
     "created_at": TimestampField,
     "current": fields.Boolean,
+    "role": fields.String,
 }
 
 workspace_fields = {"id": fields.String, "name": fields.String, "status": fields.String, "created_at": TimestampField}
