@@ -198,6 +198,32 @@ class FeatureService:
             tenant_id=tenant_id,
         )
 
+        # Force unlock features
+        features.billing.enabled = False
+        features.billing.subscription.plan = "professional"
+        features.billing.subscription.interval = "year"
+        features.can_replace_logo = True
+        features.model_load_balancing_enabled = True
+        features.dataset_operator_enabled = True
+        features.webapp_copyright_enabled = True
+        features.knowledge_pipeline.publish_enabled = True
+        features.is_allow_transfer_workspace = True
+        
+        # Remove limits
+        features.members.limit = 999999999
+        features.members.size = 0
+        features.apps.limit = 999999999
+        features.apps.size = 0
+        features.vector_space.limit = 999999999
+        features.vector_space.size = 0
+        features.annotation_quota_limit.limit = 999999999
+        features.annotation_quota_limit.size = 0
+        features.documents_upload_quota.limit = 999999999
+        features.documents_upload_quota.size = 0
+        features.workspace_members.enabled = False
+        features.workspace_members.limit = 999999999
+        features.workspace_members.size = 0
+
         return features
 
     @classmethod
