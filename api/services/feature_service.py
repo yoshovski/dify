@@ -223,6 +223,8 @@ class FeatureService:
         features.workspace_members.enabled = False
         features.workspace_members.limit = 999999999
         features.workspace_members.size = 0
+        features.trigger_event.limit = 999999999
+        features.api_rate_limit.limit = 999999999
 
         return features
 
