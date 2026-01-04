@@ -1,13 +1,16 @@
 import type { Plan } from '@/app/components/billing/type'
 import { Menu, MenuButton, MenuItems, Transition } from '@headlessui/react'
-import { RiArrowDownSLine } from '@remixicon/react'
-import { Fragment } from 'react'
+import { RiAddLine, RiArrowDownSLine, RiDeleteBinLine } from '@remixicon/react'
+import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useContext } from 'use-context-selector'
 import { ToastContext } from '@/app/components/base/toast'
+import Modal from '@/app/components/base/modal'
+import Button from '@/app/components/base/button'
+import Input from '@/app/components/base/input'
 import PlanBadge from '@/app/components/header/plan-badge'
 import { useWorkspacesContext } from '@/context/workspace-context'
-import { switchWorkspace } from '@/service/common'
+import { archiveWorkspace, createWorkspace, switchWorkspace } from '@/service/common'
 import { cn } from '@/utils/classnames'
 import { basePath } from '@/utils/var'
 
@@ -16,6 +19,26 @@ const WorkplaceSelector = () => {
   const { notify } = useContext(ToastContext)
   const { workspaces } = useWorkspacesContext()
   const currentWorkspace = workspaces.find(v => v.current)
+  const [isShowCreateModal, setIsShowCreateModal] = useState(false)
+  const [newWorkspaceName, setNewWorkspaceName] = useState('')
+  const [isShowDeleteModal, setIsShowDeleteModal] = useState(false)
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null)
+
+  const handleArchiveWorkspace = async () => {
+    if (!workspaceToDelete)
+      return
+    try {
+      await archiveWorkspace(workspaceToDelete)
+      notify({ type: 'success', message: t('common.actionMsg.modifiedSuccessfully') })
+      setIsShowDeleteModal(false)
+      setWorkspaceToDelete(null)
+      location.reload()
+    }
+    catch (e: any) {
+      notify({ type: 'error', message: e.message || t('common.api.actionFailed') })
+      setIsShowDeleteModal(false)
+    }
+  }
 
   const handleSwitchWorkspace = async (tenant_id: string) => {
     try {
@@ -27,6 +50,24 @@ const WorkplaceSelector = () => {
     }
     catch {
       notify({ type: 'error', message: t('provider.saveFailed', { ns: 'common' }) })
+    }
+  }
+
+  const handleCreateWorkspace = async () => {
+    if (!newWorkspaceName.trim()) {
+      notify({ type: 'error', message: t('common.errorMsg.fieldRequired', { field: t('common.node.name') }) })
+      return
+    }
+    try {
+      const { id } = await createWorkspace({ body: { name: newWorkspaceName } })
+      notify({ type: 'success', message: t('common.api.actionSuccess') })
+      setIsShowCreateModal(false)
+      setNewWorkspaceName('')
+      // Switch to the new workspace
+      await handleSwitchWorkspace(id)
+    }
+    catch {
+      notify({ type: 'error', message: t('common.api.actionFailed') })
     }
   }
 
@@ -74,18 +115,78 @@ const WorkplaceSelector = () => {
                   </div>
                   {
                     workspaces.map(workspace => (
-                      <div className="flex items-center gap-2 self-stretch rounded-lg py-1 pl-3 pr-2 hover:bg-state-base-hover" key={workspace.id} onClick={() => handleSwitchWorkspace(workspace.id)}>
+                      <div className="group flex items-center gap-2 self-stretch rounded-lg py-1 pl-3 pr-2 hover:bg-state-base-hover" key={workspace.id} onClick={() => handleSwitchWorkspace(workspace.id)}>
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-components-icon-bg-blue-solid text-[13px]">
                           <span className="h-6 bg-gradient-to-r from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text align-middle font-semibold uppercase leading-6 text-shadow-shadow-1 opacity-90">{workspace?.name[0]?.toLocaleUpperCase()}</span>
                         </div>
                         <div className="system-md-regular line-clamp-1 grow cursor-pointer overflow-hidden text-ellipsis text-text-secondary">{workspace.name}</div>
                         <PlanBadge plan={workspace.plan as Plan} />
+                        {workspace.role === 'owner' && (
+                          <div
+                            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive group-hover:flex"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setWorkspaceToDelete(workspace.id)
+                              setIsShowDeleteModal(true)
+                            }}
+                          >
+                            <RiDeleteBinLine className="h-4 w-4" />
+                          </div>
+                        )}
                       </div>
                     ))
                   }
+                  <div className="my-1 h-[1px] w-full bg-divider-subtle" />
+                  <div
+                    className="flex cursor-pointer items-center gap-2 self-stretch rounded-lg py-2 pl-3 pr-2 hover:bg-state-base-hover"
+                    onClick={() => setIsShowCreateModal(true)}
+                  >
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-divider-deep text-text-tertiary">
+                      <RiAddLine className="h-4 w-4" />
+                    </div>
+                    <div className="system-md-regular text-text-secondary">{t('common.userProfile.createWorkspace')}</div>
+                  </div>
                 </div>
               </MenuItems>
             </Transition>
+            <Modal
+              isShow={isShowCreateModal}
+              onClose={() => setIsShowCreateModal(false)}
+              title={t('common.userProfile.createWorkspace')}
+              className="w-[400px]"
+            >
+              <div className="space-y-4 py-4">
+                <div>
+                  <label className="system-sm-medium mb-1 block text-text-secondary">{t('common.account.workspaceName')}</label>
+                  <Input
+                    value={newWorkspaceName}
+                    onChange={(e) => setNewWorkspaceName(e.target.value)}
+                    placeholder={t('common.account.workspaceNamePlaceholder') || ''}
+                    autoFocus
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button onClick={() => setIsShowCreateModal(false)}>{t('common.operation.cancel')}</Button>
+                  <Button variant="primary" onClick={handleCreateWorkspace}>{t('common.operation.create')}</Button>
+                </div>
+              </div>
+            </Modal>
+            <Modal
+              isShow={isShowDeleteModal}
+              onClose={() => setIsShowDeleteModal(false)}
+              title="Delete Namespace"
+              className="w-[400px]"
+            >
+              <div className="space-y-4 py-4">
+                <div className="system-md-regular text-text-secondary">
+                  Are you sure you want to delete this workspace? This action cannot be undone.
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button onClick={() => setIsShowDeleteModal(false)}>{t('common.operation.cancel')}</Button>
+                  <Button variant="warning" onClick={handleArchiveWorkspace}>{t('common.operation.delete')}</Button>
+                </div>
+              </div>
+            </Modal>
           </>
         )
       }

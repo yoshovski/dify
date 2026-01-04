@@ -150,8 +150,16 @@ export const switchWorkspace = ({ url, body }: { url: string, body: Record<strin
   return post<CommonResponse & { new_tenant: IWorkspace }>(url, { body })
 }
 
+export const createWorkspace = ({ body }: { body: { name: string } }): Promise<ICurrentWorkspace> => {
+  return post<ICurrentWorkspace>('/workspaces', { body })
+}
+
 export const updateWorkspaceInfo = ({ url, body }: { url: string, body: Record<string, any> }): Promise<ICurrentWorkspace> => {
   return post<ICurrentWorkspace>(url, { body })
+}
+
+export const archiveWorkspace = (id: string): Promise<CommonResponse> => {
+  return post<CommonResponse>(`/workspaces/${id}/archive`, {})
 }
 
 export const fetchDataSource = ({ url }: { url: string }): Promise<{ data: DataSourceNotion[] }> => {

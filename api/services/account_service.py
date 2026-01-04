@@ -1137,6 +1137,24 @@ class TenantService:
             db.session.commit()
 
     @staticmethod
+    def archive_tenant(tenant: Tenant):
+        from models.dataset import Dataset
+        from models.model import App
+
+        # Check for apps
+        app_count = db.session.query(App).filter(App.tenant_id == tenant.id).count()
+        if app_count > 0:
+            raise ValueError("Cannot delete workspace with existing apps. Please delete them first.")
+
+        # Check for datasets
+        dataset_count = db.session.query(Dataset).filter(Dataset.tenant_id == tenant.id).count()
+        if dataset_count > 0:
+            raise ValueError("Cannot delete workspace with existing knowledge bases. Please delete them first.")
+
+        tenant.status = TenantStatus.ARCHIVE
+        db.session.commit()
+
+    @staticmethod
     def get_tenant_members(tenant: Tenant) -> list[Account]:
         """Get tenant members"""
         query = (

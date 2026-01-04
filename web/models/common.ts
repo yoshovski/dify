@@ -137,6 +137,7 @@ export type IWorkspace = {
   status: string
   created_at: number
   current: boolean
+  role: string
 }
 
 export type ICurrentWorkspace = Omit<IWorkspace, 'current'> & {
