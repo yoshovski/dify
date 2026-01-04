@@ -33,7 +33,7 @@ from enums.cloud_plan import CloudPlan
 from extensions.ext_database import db
 from libs.helper import TimestampField
 from libs.login import current_account_with_tenant, login_required
-from models.account import Tenant, TenantStatus
+from models.account import Tenant, TenantAccountJoin, TenantStatus
 from services.account_service import TenantService
 from services.feature_service import FeatureService
 from services.file_service import FileService
@@ -113,10 +113,16 @@ class TenantListApi(Resource):
     @account_initialization_required
     def get(self):
         current_user, current_tenant_id = current_account_with_tenant()
-        tenants = TenantService.get_join_tenants(current_user)
+        tenants = db.session.query(Tenant, TenantAccountJoin.role).join(
+            TenantAccountJoin, Tenant.id == TenantAccountJoin.tenant_id
+        ).filter(
+            TenantAccountJoin.account_id == current_user.id,
+            Tenant.status == TenantStatus.NORMAL
+        ).all()
+
         tenant_dicts = []
 
-        for tenant in tenants:
+        for tenant, role in tenants:
             features = FeatureService.get_features(tenant.id)
 
             # Create a dictionary with tenant attributes
@@ -127,6 +133,7 @@ class TenantListApi(Resource):
                 "created_at": tenant.created_at,
                 "plan": features.billing.subscription.plan if features.billing.enabled else CloudPlan.SANDBOX,
                 "current": tenant.id == current_tenant_id if current_tenant_id else False,
+                "role": role,
             }
 
             tenant_dicts.append(tenant_dict)
