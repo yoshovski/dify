@@ -16,7 +16,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-env:
   DIFY_WEB_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/dify-web
   DIFY_API_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/dify-api
 
