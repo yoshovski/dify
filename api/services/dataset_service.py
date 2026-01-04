@@ -279,9 +279,14 @@ class DatasetService:
                 # only show datasets that the user has permission to access
                 # Check if permitted_dataset_ids is not empty to avoid WHERE false condition
                 if permitted_dataset_ids and len(permitted_dataset_ids) > 0:
-                    query = query.where(Dataset.id.in_(permitted_dataset_ids))
+                    query = query.where(
+                        sa.or_(
+                            Dataset.id.in_(permitted_dataset_ids),
+                            Dataset.permission == DatasetPermissionEnum.ALL_TEAM,
+                        )
+                    )
                 else:
-                    return [], 0
+                    query = query.where(Dataset.permission == DatasetPermissionEnum.ALL_TEAM)
             else:
                 if dify_config.RBAC_ENABLED:
                     can_manage_all_datasets = DatasetService._can_manage_all_datasets(
