@@ -187,7 +187,7 @@ class FeatureService:
             cls._fulfill_params_from_workspace_info(features, tenant_id)
 
         # Force unlock features
-        features.billing.enabled = False
+        features.billing.enabled = True
         features.billing.subscription.plan = "professional"
         features.billing.subscription.interval = "year"
         features.can_replace_logo = True

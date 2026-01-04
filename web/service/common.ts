@@ -159,6 +159,10 @@ export const updateWorkspaceInfo = ({ url, body }: { url: string, body: Record<s
   return post<ICurrentWorkspace>(url, { body })
 }
 
+export const archiveWorkspace = (id: string): Promise<CommonResponse> => {
+  return post<CommonResponse>(`/workspaces/${id}/archive`, {})
+}
+
 export const fetchDataSource = ({ url }: { url: string }): Promise<{ data: DataSourceNotion[] }> => {
   return get<{ data: DataSourceNotion[] }>(url)
 }

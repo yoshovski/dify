@@ -323,3 +323,26 @@ class WorkspaceInfoApi(Resource):
         db.session.commit()
 
         return {"result": "success", "tenant": marshal(WorkspaceService.get_tenant_info(tenant), tenant_fields)}
+
+
+@console_ns.route("/workspaces/<string:tenant_id>/archive")
+class ArchiveWorkspaceApi(Resource):
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self, tenant_id):
+        current_user, _ = current_account_with_tenant()
+        tenant = db.session.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if not tenant:
+            raise ValueError("Workspace not found")
+
+        # Check permission (must be owner)
+        if not TenantService.is_owner(current_user, tenant):
+            raise Unauthorized("Only workspace owner can archive workspace")
+
+        try:
+            TenantService.archive_tenant(tenant)
+        except ValueError as e:
+            return {"result": "error", "message": str(e)}, 400
+
+        return {"result": "success"}, 200
