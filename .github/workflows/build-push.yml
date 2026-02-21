@@ -39,56 +39,28 @@ jobs:
             build_context: '{{defaultContext}}'
             file: 'api/Dockerfile'
             platform: linux/amd64
-            runs_on: depot-ubuntu-24.04-4
-          - service_name: 'build-api-arm64'
-            image_name_env: 'DIFY_API_IMAGE_NAME'
-            artifact_context: 'api'
-            build_context: '{{defaultContext}}'
-            file: 'api/Dockerfile'
-            platform: linux/arm64
-            runs_on: depot-ubuntu-24.04-4
+            runs_on: ubuntu-latest
           - service_name: 'build-web-amd64'
             image_name_env: 'DIFY_WEB_IMAGE_NAME'
             artifact_context: 'web'
             build_context: '{{defaultContext}}'
             file: 'web/Dockerfile'
             platform: linux/amd64
-            runs_on: depot-ubuntu-24.04-4
-          - service_name: 'build-web-arm64'
-            image_name_env: 'DIFY_WEB_IMAGE_NAME'
-            artifact_context: 'web'
-            build_context: '{{defaultContext}}'
-            file: 'web/Dockerfile'
-            platform: linux/arm64
-            runs_on: depot-ubuntu-24.04-4
+            runs_on: ubuntu-latest
           - service_name: 'build-agent-amd64'
             image_name_env: 'DIFY_AGENT_IMAGE_NAME'
             artifact_context: 'agent'
             build_context: '{{defaultContext}}'
             file: 'dify-agent/Dockerfile'
             platform: linux/amd64
-            runs_on: depot-ubuntu-24.04-4
-          - service_name: 'build-agent-arm64'
-            image_name_env: 'DIFY_AGENT_IMAGE_NAME'
-            artifact_context: 'agent'
-            build_context: '{{defaultContext}}'
-            file: 'dify-agent/Dockerfile'
-            platform: linux/arm64
-            runs_on: depot-ubuntu-24.04-4
+            runs_on: ubuntu-latest
           - service_name: 'build-agent-local-sandbox-amd64'
             image_name_env: 'DIFY_AGENT_LOCAL_SANDBOX_IMAGE_NAME'
             artifact_context: 'local-sandbox'
             build_context: '{{defaultContext}}:dify-agent-runtime'
             file: 'docker/Dockerfile'
             platform: linux/amd64
-            runs_on: depot-ubuntu-24.04-4
-          - service_name: 'build-agent-local-sandbox-arm64'
-            image_name_env: 'DIFY_AGENT_LOCAL_SANDBOX_IMAGE_NAME'
-            artifact_context: 'local-sandbox'
-            build_context: '{{defaultContext}}:dify-agent-runtime'
-            file: 'docker/Dockerfile'
-            platform: linux/arm64
-            runs_on: depot-ubuntu-24.04-4
+            runs_on: ubuntu-latest
 
     steps:
       - name: Prepare
