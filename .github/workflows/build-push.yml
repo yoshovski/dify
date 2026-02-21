@@ -26,7 +26,7 @@ env:
 jobs:
   build:
     runs-on: ${{ matrix.runs_on }}
-    if: github.repository == 'langgenius/dify'
+    if: github.repository == 'yoshovski/dify'
     permissions:
       contents: read
       id-token: write
@@ -173,8 +173,8 @@ jobs:
 
   create-manifest:
     needs: build
-    runs-on: depot-ubuntu-24.04
-    if: github.repository == 'langgenius/dify'
+    runs-on: ubuntu-latest
+    if: github.repository == 'yoshovski/dify'
     strategy:
       matrix:
         include:
