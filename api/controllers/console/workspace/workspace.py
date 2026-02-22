@@ -43,6 +43,10 @@ class WorkspaceListQuery(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
 
 
+class CreateWorkspacePayload(BaseModel):
+    name: str = Field(..., max_length=60)
+
+
 class SwitchWorkspacePayload(BaseModel):
     tenant_id: str
 
@@ -61,6 +65,7 @@ def reg(cls: type[BaseModel]):
 
 
 reg(WorkspaceListQuery)
+reg(CreateWorkspacePayload)
 reg(SwitchWorkspacePayload)
 reg(WorkspaceCustomConfigPayload)
 reg(WorkspaceInfoPayload)
@@ -125,7 +130,7 @@ class TenantListApi(Resource):
                 "name": tenant.name,
                 "status": tenant.status,
                 "created_at": tenant.created_at,
-                "plan": features.billing.subscription.plan if features.billing.enabled else CloudPlan.SANDBOX,
+                "plan": "enterprise", # forced enterprise unlock
                 "current": tenant.id == current_tenant_id if current_tenant_id else False,
                 "role": role,
             }
@@ -133,6 +138,20 @@ class TenantListApi(Resource):
             tenant_dicts.append(tenant_dict)
 
         return {"workspaces": marshal(tenant_dicts, tenants_fields)}, 200
+
+    @console_ns.expect(console_ns.models[CreateWorkspacePayload.__name__])
+    @setup_required
+    @login_required
+    @account_initialization_required
+    def post(self):
+        current_user, _ = current_account_with_tenant()
+        payload = console_ns.payload or {}
+        args = CreateWorkspacePayload.model_validate(payload)
+
+        tenant = TenantService.create_tenant(args.name, is_setup=True)
+        TenantService.create_tenant_member(tenant, current_user, role="owner")
+        
+        return {"result": "success", "id": tenant.id}, 201
 
 
 @console_ns.route("/all-workspaces")

@@ -1,21 +1,21 @@
-import type { Plan } from '@/app/components/billing/type'
-import { Menu, MenuButton, MenuItems, Transition } from '@headlessui/react'
-import { RiAddLine, RiArrowDownSLine, RiDeleteBinLine } from '@remixicon/react'
 import { Fragment, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useContext } from 'use-context-selector'
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from '@headlessui/react'
+import { RiAddLine, RiArrowDownSLine, RiCheckLine, RiDeleteBinLine } from '@remixicon/react'
 import { ToastContext } from '@/app/components/base/toast'
 import Modal from '@/app/components/base/modal'
 import Button from '@/app/components/base/button'
 import Input from '@/app/components/base/input'
 import PlanBadge from '@/app/components/header/plan-badge'
+import type { Plan } from '@/app/components/billing/type'
 import { useWorkspacesContext } from '@/context/workspace-context'
 import { archiveWorkspace, createWorkspace, switchWorkspace } from '@/service/common'
 import { cn } from '@/utils/classnames'
 import { basePath } from '@/utils/var'
 
 const WorkplaceSelector = () => {
-  const { t } = useTranslation()
+  const { t } = useTranslation('common')
   const { notify } = useContext(ToastContext)
   const { workspaces } = useWorkspacesContext()
   const currentWorkspace = workspaces.find(v => v.current)
@@ -29,13 +29,13 @@ const WorkplaceSelector = () => {
       return
     try {
       await archiveWorkspace(workspaceToDelete)
-      notify({ type: 'success', message: t('common.actionMsg.modifiedSuccessfully') })
+      notify({ type: 'success', message: t('actionMsg.modifiedSuccessfully', { ns: 'common' }) })
       setIsShowDeleteModal(false)
       setWorkspaceToDelete(null)
       location.reload()
     }
     catch (e: any) {
-      notify({ type: 'error', message: e.message || t('common.api.actionFailed') })
+      notify({ type: 'error', message: e.message || t('api.actionFailed', { ns: 'common' }) })
       setIsShowDeleteModal(false)
     }
   }
@@ -55,42 +55,40 @@ const WorkplaceSelector = () => {
 
   const handleCreateWorkspace = async () => {
     if (!newWorkspaceName.trim()) {
-      notify({ type: 'error', message: t('common.errorMsg.fieldRequired', { field: t('common.node.name') }) })
+      notify({ type: 'error', message: t('errorMsg.fieldRequired', { field: t('node.name', { ns: 'common' }), ns: 'common' }) })
       return
     }
     try {
       const { id } = await createWorkspace({ body: { name: newWorkspaceName } })
-      notify({ type: 'success', message: t('common.api.actionSuccess') })
+      notify({ type: 'success', message: t('api.actionSuccess', { ns: 'common' }) })
       setIsShowCreateModal(false)
       setNewWorkspaceName('')
       // Switch to the new workspace
       await handleSwitchWorkspace(id)
     }
     catch {
-      notify({ type: 'error', message: t('common.api.actionFailed') })
+      notify({ type: 'error', message: t('api.actionFailed', { ns: 'common' }) })
     }
   }
 
   return (
-    <Menu as="div" className="min-w-0">
+    <Menu as="div" className="relative h-full inline-block text-left">
       {
         ({ open }) => (
           <>
-            <MenuButton className={cn(
-              `
-                group flex w-full cursor-pointer items-center
-                p-0.5 hover:bg-state-base-hover ${open && 'bg-state-base-hover'} rounded-[10px]
-              `,
-            )}
+            <MenuButton
+              className={cn(
+                'group flex items-center h-full px-2 rounded-lg cursor-pointer hover:bg-state-hover-custom',
+                open && 'bg-state-hover-custom',
+              )}
             >
-              <div className="mr-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-components-icon-bg-blue-solid text-[13px] max-[800px]:mr-0">
-                <span className="h-6 bg-gradient-to-r from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text align-middle font-semibold uppercase leading-6 text-shadow-shadow-1 opacity-90">{currentWorkspace?.name[0]?.toLocaleUpperCase()}</span>
-              </div>
-              <div className="flex min-w-0 items-center">
-                <div className="system-sm-medium min-w-0  max-w-[149px] truncate text-text-secondary max-[800px]:hidden">{currentWorkspace?.name}</div>
-                <RiArrowDownSLine className="h-4 w-4 shrink-0 text-text-secondary" />
+              <div className="flex items-center text-sm font-medium text-text-primary">
+                <div className="mr-2 truncate max-w-[120px]" title={currentWorkspace?.name}>{currentWorkspace?.name}</div>
+                <PlanBadge plan={currentWorkspace?.plan as Plan} className='mr-1' />
+                <RiArrowDownSLine className="w-4 h-4 text-text-tertiary" />
               </div>
             </MenuButton>
+
             <Transition
               as={Fragment}
               enter="transition ease-out duration-100"
@@ -101,13 +99,10 @@ const WorkplaceSelector = () => {
               leaveTo="transform opacity-0 scale-95"
             >
               <MenuItems
-                anchor="bottom start"
-                className={cn(
-                  `
-                    shadows-shadow-lg absolute left-[-15px] z-[1000] mt-1 flex max-h-[400px] w-[280px] flex-col items-start overflow-y-auto
-                    rounded-xl bg-components-panel-bg-blur backdrop-blur-[5px]
-                  `,
-                )}
+                className="
+                  absolute left-0 mt-2 min-w-[240px] max-w-[320px] max-h-[60vh] overflow-y-auto transform z-[1000]
+                  bg-components-panel-bg-blur rounded-xl border-[0.5px] border-components-panel-border shadow-lg
+                "
               >
                 <div className="flex w-full flex-col items-start self-stretch rounded-xl border-[0.5px] border-components-panel-border p-1 pb-2 shadow-lg ">
                   <div className="flex items-start self-stretch px-3 pb-0.5 pt-1">
@@ -115,36 +110,43 @@ const WorkplaceSelector = () => {
                   </div>
                   {
                     workspaces.map(workspace => (
-                      <div className="group flex items-center gap-2 self-stretch rounded-lg py-1 pl-3 pr-2 hover:bg-state-base-hover" key={workspace.id} onClick={() => handleSwitchWorkspace(workspace.id)}>
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-components-icon-bg-blue-solid text-[13px]">
-                          <span className="h-6 bg-gradient-to-r from-components-avatar-shape-fill-stop-0 to-components-avatar-shape-fill-stop-100 bg-clip-text align-middle font-semibold uppercase leading-6 text-shadow-shadow-1 opacity-90">{workspace?.name[0]?.toLocaleUpperCase()}</span>
-                        </div>
-                        <div className="system-md-regular line-clamp-1 grow cursor-pointer overflow-hidden text-ellipsis text-text-secondary">{workspace.name}</div>
-                        <PlanBadge plan={workspace.plan as Plan} />
-                        {workspace.role === 'owner' && (
-                          <div
-                            className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive group-hover:flex"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setWorkspaceToDelete(workspace.id)
-                              setIsShowDeleteModal(true)
-                            }}
-                          >
-                            <RiDeleteBinLine className="h-4 w-4" />
+                      <MenuItem key={workspace.id}>
+                        <div
+                          className="group flex items-center w-full px-3 py-1.5 text-sm text-text-secondary hover:bg-state-hover-custom cursor-pointer rounded-lg"
+                        >
+                          <div className='flex items-center justify-between w-full' onClick={() => handleSwitchWorkspace(workspace.id)}>
+                            <div className="flex items-center flex-1 min-w-0 mr-2">
+                              {workspace.current && <RiCheckLine className="w-4 h-4 text-text-accent mr-2 flex-shrink-0" />}
+                              {!workspace.current && <div className="w-6 shrink-0" />}
+                              <span className="truncate" title={workspace.name}>{workspace.name}</span>
+                              <PlanBadge plan={workspace.plan as Plan} className='ml-2 flex-shrink-0' />
+                            </div>
+                            {workspace.role === 'owner' && !workspace.current && (
+                              <button
+                                className="hidden group-hover:block p-1 text-text-tertiary hover:text-text-warning hover:bg-state-destructive-hover rounded flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  e.preventDefault()
+                                  setWorkspaceToDelete(workspace.id)
+                                  setIsShowDeleteModal(true)
+                                }}
+                              >
+                                <RiDeleteBinLine className="w-[14px] h-[14px]" />
+                              </button>
+                            )}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      </MenuItem>
                     ))
                   }
-                  <div className="my-1 h-[1px] w-full bg-divider-subtle" />
                   <div
-                    className="flex cursor-pointer items-center gap-2 self-stretch rounded-lg py-2 pl-3 pr-2 hover:bg-state-base-hover"
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-state-hover-custom"
                     onClick={() => setIsShowCreateModal(true)}
                   >
                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-divider-deep text-text-tertiary">
                       <RiAddLine className="h-4 w-4" />
                     </div>
-                    <div className="system-md-regular text-text-secondary">{t('common.userProfile.createWorkspace')}</div>
+                    <div className="system-md-regular text-text-secondary">{t('userProfile.createWorkspace')}</div>
                   </div>
                 </div>
               </MenuItems>
@@ -152,38 +154,38 @@ const WorkplaceSelector = () => {
             <Modal
               isShow={isShowCreateModal}
               onClose={() => setIsShowCreateModal(false)}
-              title={t('common.userProfile.createWorkspace')}
+              title={t('userProfile.createWorkspace')}
               className="w-[400px]"
             >
               <div className="space-y-4 py-4">
                 <div>
-                  <label className="system-sm-medium mb-1 block text-text-secondary">{t('common.account.workspaceName')}</label>
+                  <label className="system-sm-medium mb-1 block text-text-secondary">{t('account.workspaceName')}</label>
                   <Input
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
-                    placeholder={t('common.account.workspaceNamePlaceholder') || ''}
+                    placeholder={t('account.workspaceNamePlaceholder') || ''}
                     autoFocus
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button onClick={() => setIsShowCreateModal(false)}>{t('common.operation.cancel')}</Button>
-                  <Button variant="primary" onClick={handleCreateWorkspace}>{t('common.operation.create')}</Button>
+                  <Button onClick={() => setIsShowCreateModal(false)}>{t('operation.cancel')}</Button>
+                  <Button variant="primary" onClick={handleCreateWorkspace}>{t('operation.create')}</Button>
                 </div>
               </div>
             </Modal>
             <Modal
               isShow={isShowDeleteModal}
               onClose={() => setIsShowDeleteModal(false)}
-              title="Delete Namespace"
+              title="Delete Workspace"
               className="w-[400px]"
             >
               <div className="space-y-4 py-4">
-                <div className="system-md-regular text-text-secondary">
+                <div className="text-text-secondary system-sm-regular">
                   Are you sure you want to delete this workspace? This action cannot be undone.
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button onClick={() => setIsShowDeleteModal(false)}>{t('common.operation.cancel')}</Button>
-                  <Button variant="warning" onClick={handleArchiveWorkspace}>{t('common.operation.delete')}</Button>
+                  <Button onClick={() => setIsShowDeleteModal(false)}>{t('operation.cancel')}</Button>
+                  <Button variant="warning" onClick={handleArchiveWorkspace}>{t('operation.delete')}</Button>
                 </div>
               </div>
             </Modal>
