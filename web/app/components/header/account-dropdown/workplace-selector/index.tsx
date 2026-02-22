@@ -15,7 +15,7 @@ import { cn } from '@/utils/classnames'
 import { basePath } from '@/utils/var'
 
 const WorkplaceSelector = () => {
-  const { t } = useTranslation('common')
+  const { t } = useTranslation()
   const { notify } = useContext(ToastContext)
   const { workspaces } = useWorkspacesContext()
   const currentWorkspace = workspaces.find(v => v.current)
@@ -146,7 +146,7 @@ const WorkplaceSelector = () => {
                     <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-dashed border-divider-deep text-text-tertiary">
                       <RiAddLine className="h-4 w-4" />
                     </div>
-                    <div className="system-md-regular text-text-secondary">{t('userProfile.createWorkspace')}</div>
+                    <div className="system-md-regular text-text-secondary">{t('userProfile.createWorkspace', { ns: 'common' })}</div>
                   </div>
                 </div>
               </MenuItems>
@@ -154,22 +154,22 @@ const WorkplaceSelector = () => {
             <Modal
               isShow={isShowCreateModal}
               onClose={() => setIsShowCreateModal(false)}
-              title={t('userProfile.createWorkspace')}
+              title={t('userProfile.createWorkspace', { ns: 'common' })}
               className="w-[400px]"
             >
               <div className="space-y-4 py-4">
                 <div>
-                  <label className="system-sm-medium mb-1 block text-text-secondary">{t('account.workspaceName')}</label>
+                  <label className="system-sm-medium mb-1 block text-text-secondary">{t('account.workspaceName', { ns: 'common' })}</label>
                   <Input
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
-                    placeholder={t('account.workspaceNamePlaceholder') || ''}
+                    placeholder={t('account.workspaceNamePlaceholder', { ns: 'common' }) || ''}
                     autoFocus
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button onClick={() => setIsShowCreateModal(false)}>{t('operation.cancel')}</Button>
-                  <Button variant="primary" onClick={handleCreateWorkspace}>{t('operation.create')}</Button>
+                  <Button onClick={() => setIsShowCreateModal(false)}>{t('operation.cancel', { ns: 'common' })}</Button>
+                  <Button variant="primary" onClick={handleCreateWorkspace}>{t('operation.create', { ns: 'common' })}</Button>
                 </div>
               </div>
             </Modal>
@@ -184,8 +184,8 @@ const WorkplaceSelector = () => {
                   Are you sure you want to delete this workspace? This action cannot be undone.
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button onClick={() => setIsShowDeleteModal(false)}>{t('operation.cancel')}</Button>
-                  <Button variant="warning" onClick={handleArchiveWorkspace}>{t('operation.delete')}</Button>
+                  <Button onClick={() => setIsShowDeleteModal(false)}>{t('operation.cancel', { ns: 'common' })}</Button>
+                  <Button variant="warning" onClick={handleArchiveWorkspace}>{t('operation.delete', { ns: 'common' })}</Button>
                 </div>
               </div>
             </Modal>
