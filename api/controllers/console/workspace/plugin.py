@@ -580,8 +580,13 @@ class PluginDebuggingKeyApi(Resource):
                 "host": dify_config.PLUGIN_REMOTE_INSTALL_HOST,
                 "port": dify_config.PLUGIN_REMOTE_INSTALL_PORT,
             }
-        except PluginDaemonClientSideError as e:
-            return {"code": "plugin_error", "message": e.description}, 400
+        except PluginDaemonClientSideError:
+            # The daemon does not serve this route when plugin debugging is disabled, and its
+            # raw HTTP status string is meaningless in the console. The client already logs it.
+            return {
+                "code": "plugin_error",
+                "message": "Plugin debugging is unavailable on this deployment.",
+            }, 400
 
 
 @console_ns.route("/workspaces/current/plugin/list")

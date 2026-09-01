@@ -279,7 +279,7 @@ class ArchiveWorkspaceApi(Resource):
     @account_initialization_required
     @with_current_user
     @with_session
-    def post(self, tenant_id: str, session: Session, current_user: Account):
+    def post(self, session: Session, current_user: Account, tenant_id: str):
         """Archive an owned, non-current workspace after empty-workspace checks."""
         tenant = session.scalar(select(Tenant).where(Tenant.id == tenant_id).limit(1))
         if tenant is None:
