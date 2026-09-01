@@ -2,7 +2,10 @@
 
 import type { GetWorkspacesCurrentSummaryResponse } from '@dify/contracts/api/console/workspaces/types.gen'
 import type { ReactNode } from 'react'
+import { Button } from '@langgenius/dify-ui/button'
 import { cn } from '@langgenius/dify-ui/cn'
+import { Dialog, DialogContent, DialogTitle } from '@langgenius/dify-ui/dialog'
+import { Input } from '@langgenius/dify-ui/input'
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '@langgenius/dify-ui/popover'
 import { toast } from '@langgenius/dify-ui/toast'
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
@@ -22,6 +25,7 @@ import { workspacePermissionKeysAtom } from '@/context/permission-state'
 import { systemFeaturesQueryOptions } from '@/features/system-features/client'
 import Link from '@/next/link'
 import { consoleQuery } from '@/service/client'
+import { archiveWorkspace, createWorkspace } from '@/service/common'
 import { hasPermission } from '@/utils/permission'
 import { basePath } from '@/utils/var'
 import { formatCredits } from '../utils'
@@ -259,12 +263,17 @@ export function WorkspaceCard() {
     }),
   )
   const [open, setOpen] = useState(false)
+  const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false)
+  const [newWorkspaceName, setNewWorkspaceName] = useState('')
+  const [workspaceToArchive, setWorkspaceToArchive] = useState<string | null>(null)
   const workspacesQueryOptions = consoleQuery.workspaces.get.queryOptions()
   const workspacesQuery = useQuery({
     ...workspacesQueryOptions,
     enabled: open,
   })
   const switchWorkspaceMutation = useMutation(consoleQuery.workspaces.switch.post.mutationOptions())
+  const createWorkspaceMutation = useMutation({ mutationFn: createWorkspace })
+  const archiveWorkspaceMutation = useMutation({ mutationFn: archiveWorkspace })
   const currentWorkspace = currentWorkspaceQuery.data
   const workspaces = workspacesQuery.data?.workspaces
   const workspacePermissionKeys = useAtomValue(workspacePermissionKeysAtom)
@@ -310,51 +319,151 @@ export function WorkspaceCard() {
     }
   }
 
+  const handleCreateWorkspace = async () => {
+    const name = newWorkspaceName.trim()
+    if (!name) return
+
+    try {
+      await createWorkspaceMutation.mutateAsync(name)
+      setIsCreateWorkspaceOpen(false)
+      setNewWorkspaceName('')
+      toast.success(t(($) => $['actionMsg.modifiedSuccessfully'], { ns: 'common' }))
+      location.assign(`${location.origin}${basePath}`)
+    } catch {
+      toast.error(t(($) => $['actionMsg.modifiedUnsuccessfully'], { ns: 'common' }))
+    }
+  }
+
+  const handleArchiveWorkspace = async (workspaceId: string) => {
+    try {
+      await archiveWorkspaceMutation.mutateAsync(workspaceId)
+      await queryClient.invalidateQueries(workspacesQueryOptions)
+      setWorkspaceToArchive(null)
+      toast.success(t(($) => $['actionMsg.modifiedSuccessfully'], { ns: 'common' }))
+    } catch {
+      toast.error(t(($) => $['actionMsg.modifiedUnsuccessfully'], { ns: 'common' }))
+    }
+  }
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <>
-        <WorkspaceCardTrigger
-          name={currentWorkspace.name}
-          status={renderWorkspaceStatus()}
-          credits={currentWorkspace.credits}
-          showCloudBilling={showCloudBilling}
-          showPlanAction={showPlanAction}
-          planActionLabel={planActionLabel}
-          creditsHref={buildIntegrationPath('provider')}
-          onPrefetchWorkspaces={prefetchWorkspaces}
-          onPlanClick={setShowPricingModal}
-        />
-        <PopoverContent
-          placement="bottom-start"
-          sideOffset={-workspaceMenuTriggerHeight}
-          alignOffset={workspaceMenuAlignOffset}
-          className="w-[280px] overflow-hidden bg-components-panel-bg-blur! p-0! backdrop-blur-[5px]"
-        >
-          <WorkspaceMenuHeader
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <>
+          <WorkspaceCardTrigger
             name={currentWorkspace.name}
             status={renderWorkspaceStatus()}
-            showInviteMembers={showInviteMembers}
-            settingsLabel={t(($) => $['mainNav.workspace.settings'], { ns: 'common' })}
-            inviteMembersLabel={t(($) => $['mainNav.workspace.inviteMembers'], { ns: 'common' })}
-            onOpenSettings={() => {
-              setOpen(false)
-              setSettingsDestination(hasBillingPlan ? 'billing' : 'members')
-            }}
-            onInviteMembers={() => {
-              setOpen(false)
-              setSettingsDestination('members')
-            }}
+            credits={currentWorkspace.credits}
+            showCloudBilling={showCloudBilling}
+            showPlanAction={showPlanAction}
+            planActionLabel={planActionLabel}
+            creditsHref={buildIntegrationPath('provider')}
+            onPrefetchWorkspaces={prefetchWorkspaces}
+            onPlanClick={setShowPricingModal}
           />
-          <WorkspaceSwitcher
-            workspaces={workspaces}
-            isPending={workspacesQuery.isPending}
-            onSwitchWorkspace={(workspaceId) => {
-              setOpen(false)
-              void handleSwitchWorkspace(workspaceId)
+          <PopoverContent
+            placement="bottom-start"
+            sideOffset={-workspaceMenuTriggerHeight}
+            alignOffset={workspaceMenuAlignOffset}
+            className="w-[280px] overflow-hidden bg-components-panel-bg-blur! p-0! backdrop-blur-[5px]"
+          >
+            <WorkspaceMenuHeader
+              name={currentWorkspace.name}
+              status={renderWorkspaceStatus()}
+              showInviteMembers={showInviteMembers}
+              settingsLabel={t(($) => $['mainNav.workspace.settings'], { ns: 'common' })}
+              inviteMembersLabel={t(($) => $['mainNav.workspace.inviteMembers'], { ns: 'common' })}
+              onOpenSettings={() => {
+                setOpen(false)
+                setSettingsDestination(hasBillingPlan ? 'billing' : 'members')
+              }}
+              onInviteMembers={() => {
+                setOpen(false)
+                setSettingsDestination('members')
+              }}
+            />
+            <WorkspaceSwitcher
+              workspaces={workspaces}
+              isPending={workspacesQuery.isPending}
+              onSwitchWorkspace={(workspaceId) => {
+                setOpen(false)
+                void handleSwitchWorkspace(workspaceId)
+              }}
+              onCreateWorkspace={() => {
+                setOpen(false)
+                setIsCreateWorkspaceOpen(true)
+              }}
+              onArchiveWorkspace={(workspaceId) => {
+                setOpen(false)
+                setWorkspaceToArchive(workspaceId)
+              }}
+            />
+          </PopoverContent>
+        </>
+      </Popover>
+      <Dialog open={isCreateWorkspaceOpen} onOpenChange={setIsCreateWorkspaceOpen}>
+        <DialogContent className="w-full max-w-[400px]! overflow-hidden! border-none text-left align-middle">
+          <DialogTitle className="title-2xl-semi-bold text-text-primary">
+            {t(($) => $['userProfile.createWorkspace'], { ns: 'common' })}
+          </DialogTitle>
+          <form
+            className="space-y-4 py-4"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void handleCreateWorkspace()
             }}
-          />
-        </PopoverContent>
-      </>
-    </Popover>
+          >
+            <Input
+              value={newWorkspaceName}
+              onChange={(event) => setNewWorkspaceName(event.target.value)}
+              placeholder={t(($) => $['account.workspaceNamePlaceholder'], { ns: 'common' })}
+            />
+            <div className="flex justify-end gap-2">
+              <Button type="button" onClick={() => setIsCreateWorkspaceOpen(false)}>
+                {t(($) => $['operation.cancel'], { ns: 'common' })}
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={!newWorkspaceName.trim() || createWorkspaceMutation.isPending}
+              >
+                {t(($) => $['operation.create'], { ns: 'common' })}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={workspaceToArchive !== null}
+        onOpenChange={(dialogOpen) => {
+          if (!dialogOpen) setWorkspaceToArchive(null)
+        }}
+      >
+        <DialogContent className="w-full max-w-[400px]! overflow-hidden! border-none text-left align-middle">
+          <DialogTitle className="title-2xl-semi-bold text-text-primary">
+            {t(($) => $['operation.deleteConfirmTitle'], { ns: 'common' })}
+          </DialogTitle>
+          <div className="space-y-4 py-4">
+            <p className="system-sm-regular text-text-secondary">
+              {t(($) => $['userProfile.archiveWorkspaceConfirm'], { ns: 'common' })}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button onClick={() => setWorkspaceToArchive(null)}>
+                {t(($) => $['operation.cancel'], { ns: 'common' })}
+              </Button>
+              <Button
+                variant="secondary"
+                tone="destructive"
+                disabled={archiveWorkspaceMutation.isPending}
+                onClick={() => {
+                  if (workspaceToArchive) void handleArchiveWorkspace(workspaceToArchive)
+                }}
+              >
+                {t(($) => $['operation.delete'], { ns: 'common' })}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

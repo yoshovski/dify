@@ -7,7 +7,7 @@ from flask_restx import Resource
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import BadRequest, Conflict, NotFound, Unauthorized
 
 import services
 from configs import dify_config
@@ -58,6 +58,10 @@ logger = logging.getLogger(__name__)
 class WorkspaceListQuery(BaseModel):
     page: int = Field(default=1, ge=1, le=99999)
     limit: int = Field(default=20, ge=1, le=100)
+
+
+class CreateWorkspacePayload(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
 
 
 class SwitchWorkspacePayload(BaseModel):
@@ -124,6 +128,7 @@ class TenantListItemResponse(ResponseModel):
     created_at: int | None = None
     last_opened_at: int | None = None
     current: bool
+    role: TenantAccountRole
 
     @field_validator("status", mode="before")
     @classmethod
@@ -142,6 +147,15 @@ class TenantListItemResponse(ResponseModel):
 
 class TenantListResponse(ResponseModel):
     workspaces: list[TenantListItemResponse]
+
+
+class CreateWorkspaceResponse(ResponseModel):
+    result: str
+    id: str
+
+
+class WorkspaceOperationResponse(ResponseModel):
+    result: str
 
 
 class WorkspaceListItemResponse(ResponseModel):
@@ -206,6 +220,7 @@ WORKSPACE_LOGO_UPLOAD_PARAMS = {
 register_schema_models(
     console_ns,
     WorkspaceListQuery,
+    CreateWorkspacePayload,
     SwitchWorkspacePayload,
     WorkspaceCustomConfigPayload,
     WorkspaceInfoPayload,
@@ -216,6 +231,7 @@ register_response_schema_models(
     TenantInfoResponse,
     TenantListItemResponse,
     TenantListResponse,
+    CreateWorkspaceResponse,
     WorkspaceCustomConfigResponse,
     WorkspaceListItemResponse,
     WorkspacePaginationResponse,
@@ -223,6 +239,7 @@ register_response_schema_models(
     WorkspaceTenantResultResponse,
     WorkspaceLogoUploadResponse,
     WorkspacePermissionResponse,
+    WorkspaceOperationResponse,
 )
 
 
@@ -233,6 +250,51 @@ class TenantListApi(Resource):
     def get(self, request_context: RequestContext):
         workspaces = application_services().workspace_queries.list_for_account(request_context)
         return dump_response(TenantListResponse, {"workspaces": workspaces}), HTTPStatus.OK
+
+    @console_ns.expect(console_ns.models[CreateWorkspacePayload.__name__])
+    @console_ns.response(HTTPStatus.CREATED, "Created", console_ns.models[CreateWorkspaceResponse.__name__])
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @with_current_user
+    @with_session
+    def post(self, session: Session, current_user: Account):
+        """Create a workspace through the RBAC-aware owner creation path."""
+        payload = console_ns.payload or {}
+        args = CreateWorkspacePayload.model_validate(payload)
+        tenant = TenantService.create_owner_tenant(
+            current_user,
+            name=args.name.strip(),
+            is_from_dashboard=True,
+            session=session,
+        )
+        return CreateWorkspaceResponse(result="success", id=tenant.id).model_dump(mode="json"), HTTPStatus.CREATED
+
+
+@console_ns.route("/workspaces/<string:tenant_id>/archive")
+class ArchiveWorkspaceApi(Resource):
+    @console_ns.response(HTTPStatus.OK, "Archived", console_ns.models[WorkspaceOperationResponse.__name__])
+    @setup_required
+    @login_required
+    @account_initialization_required
+    @with_current_user
+    @with_session
+    def post(self, tenant_id: str, session: Session, current_user: Account):
+        """Archive an owned, non-current workspace after empty-workspace checks."""
+        tenant = session.scalar(select(Tenant).where(Tenant.id == tenant_id).limit(1))
+        if tenant is None:
+            raise NotFound()
+        if current_user.current_tenant_id == tenant_id:
+            raise Conflict("Switch to another workspace before archiving this one.")
+        if not TenantService.is_owner(current_user, tenant, session=session):
+            raise Unauthorized("Only the workspace owner can archive it.")
+
+        try:
+            TenantService.archive_tenant(tenant, session=session)
+        except ValueError as exc:
+            raise BadRequest(str(exc)) from exc
+
+        return WorkspaceOperationResponse(result="success").model_dump(mode="json"), HTTPStatus.OK
 
 
 @console_ns.route("/all-workspaces")

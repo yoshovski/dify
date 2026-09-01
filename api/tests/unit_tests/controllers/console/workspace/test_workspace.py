@@ -12,7 +12,7 @@ from flask import Flask
 from sqlalchemy import Engine, event
 from sqlalchemy.orm import Session, scoped_session, sessionmaker
 from werkzeug.datastructures import FileStorage
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import Conflict, NotFound, Unauthorized
 
 import services
 from controllers.common.errors import (
@@ -26,6 +26,8 @@ from controllers.console import console_ns
 from controllers.console.error import AccountNotLinkTenantError
 from controllers.console.workspace.error import CurrentWorkspaceArchivedError
 from controllers.console.workspace.workspace import (
+    ArchiveWorkspaceApi,
+    CreateWorkspaceResponse,
     CurrentWorkspaceSummaryApi,
     CustomConfigWorkspaceApi,
     SwitchWorkspaceApi,
@@ -41,7 +43,7 @@ from controllers.console.workspace.workspace import (
 from enums import CloudPlan, DeploymentEdition
 from libs.datetime_utils import naive_utc_now
 from machinery.context import RequestContext
-from models.account import Account, Tenant, TenantAccountJoin, TenantCustomConfigDict, TenantStatus
+from models.account import Account, Tenant, TenantAccountJoin, TenantAccountRole, TenantCustomConfigDict, TenantStatus
 from repositories.workspace_query_repository import WorkspaceQueryRepository
 from services import workspace_plan_gateway
 from services.workspace_query_service import WorkspaceQueryService, WorkspaceRecord
@@ -132,6 +134,7 @@ class TestTenantListApi:
                 status=TenantStatus.NORMAL.value,
                 created_at=created_at,
                 last_opened_at=last_opened_at,
+                role=TenantAccountRole.OWNER.value,
             ),
             WorkspaceRecord(
                 id="workspace-2",
@@ -139,6 +142,7 @@ class TestTenantListApi:
                 status=TenantStatus.NORMAL.value,
                 created_at=created_at,
                 last_opened_at=None,
+                role=TenantAccountRole.NORMAL.value,
             ),
         )
         plans = MagicMock()
@@ -162,6 +166,7 @@ class TestTenantListApi:
                     "created_at": int(created_at.timestamp()),
                     "last_opened_at": int(last_opened_at.timestamp()),
                     "current": True,
+                    "role": "owner",
                 },
                 {
                     "id": "workspace-2",
@@ -171,11 +176,83 @@ class TestTenantListApi:
                     "created_at": int(created_at.timestamp()),
                     "last_opened_at": None,
                     "current": False,
+                    "role": "normal",
                 },
             ]
         }
         workspaces.list_for_account.assert_called_once_with("account-1")
         plans.resolve_many.assert_called_once_with(["workspace-1", "workspace-2"])
+
+
+class TestWorkspaceMutations:
+    def test_create_uses_owner_tenant_initialization_path(self, app: Flask):
+        api = TenantListApi()
+        method = unwrap(api.post)
+        user = make_account()
+        created = make_tenant("created")
+
+        with (
+            app.test_request_context("/workspaces", json={"name": "  New workspace  "}),
+            patch(
+                "controllers.console.workspace.workspace.TenantService.create_owner_tenant",
+                return_value=created,
+            ) as create_owner_tenant,
+        ):
+            result, status = method(api, MagicMock(), user)
+
+        assert status == HTTPStatus.CREATED
+        assert CreateWorkspaceResponse.model_validate(result).id == "created"
+        create_owner_tenant.assert_called_once_with(
+            user,
+            name="New workspace",
+            is_from_dashboard=True,
+            session=create_owner_tenant.call_args.kwargs["session"],
+        )
+
+    def test_archive_rejects_current_workspace(self, app: Flask, workspace_session: scoped_session[Session]):
+        api = ArchiveWorkspaceApi()
+        method = unwrap(api.post)
+        tenant = make_tenant("current")
+        workspace_session.add(tenant)
+        workspace_session.commit()
+        user = make_account_with_tenant(tenant)
+
+        with app.test_request_context(f"/workspaces/{tenant.id}/archive"), pytest.raises(Conflict):
+            method(api, tenant.id, workspace_session, user)
+
+    def test_archive_requires_owner(self, app: Flask, workspace_session: scoped_session[Session]):
+        api = ArchiveWorkspaceApi()
+        method = unwrap(api.post)
+        tenant = make_tenant("other")
+        workspace_session.add(tenant)
+        workspace_session.commit()
+        user = make_account()
+
+        with (
+            app.test_request_context(f"/workspaces/{tenant.id}/archive"),
+            patch("controllers.console.workspace.workspace.TenantService.is_owner", return_value=False),
+            pytest.raises(Unauthorized),
+        ):
+            method(api, tenant.id, workspace_session, user)
+
+    def test_archive_delegates_data_safety_check(self, app: Flask, workspace_session: scoped_session[Session]):
+        api = ArchiveWorkspaceApi()
+        method = unwrap(api.post)
+        tenant = make_tenant("empty")
+        workspace_session.add(tenant)
+        workspace_session.commit()
+        user = make_account()
+
+        with (
+            app.test_request_context(f"/workspaces/{tenant.id}/archive"),
+            patch("controllers.console.workspace.workspace.TenantService.is_owner", return_value=True),
+            patch("controllers.console.workspace.workspace.TenantService.archive_tenant") as archive_tenant,
+        ):
+            result, status = method(api, tenant.id, workspace_session, user)
+
+        assert status == HTTPStatus.OK
+        assert result == {"result": "success"}
+        archive_tenant.assert_called_once_with(tenant, session=workspace_session)
 
 
 class TestWorkspaceQueryRepository:
@@ -217,6 +294,7 @@ class TestWorkspaceQueryRepository:
                 status=TenantStatus.NORMAL.value,
                 created_at=earlier.created_at,
                 last_opened_at=last_opened_at,
+                role=TenantAccountRole.NORMAL.value,
             ),
             WorkspaceRecord(
                 id=later.id,
@@ -224,6 +302,7 @@ class TestWorkspaceQueryRepository:
                 status=TenantStatus.NORMAL.value,
                 created_at=later.created_at,
                 last_opened_at=None,
+                role=TenantAccountRole.NORMAL.value,
             ),
         )
         assert set(membership_ids) == {earlier.id, later.id, archived.id}

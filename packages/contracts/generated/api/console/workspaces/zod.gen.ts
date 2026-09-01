@@ -3,6 +3,21 @@
 import * as z from 'zod'
 
 /**
+ * CreateWorkspacePayload
+ */
+export const zCreateWorkspacePayload = z.object({
+  name: z.string().min(1).max(60),
+})
+
+/**
+ * CreateWorkspaceResponse
+ */
+export const zCreateWorkspaceResponse = z.object({
+  id: z.string(),
+  result: z.string(),
+})
+
+/**
  * AgentProviderResponse
  */
 export const zAgentProviderResponse = z.record(z.string(), z.unknown())
@@ -786,6 +801,13 @@ export const zWorkspaceInfoPayload = z.object({
  */
 export const zSwitchWorkspacePayload = z.object({
   tenant_id: z.string(),
+})
+
+/**
+ * WorkspaceOperationResponse
+ */
+export const zWorkspaceOperationResponse = z.object({
+  result: z.string(),
 })
 
 /**
@@ -1603,26 +1625,6 @@ export const zSkillReferenceListResponse = z.object({
 export const zCloudPlan = z.enum(['professional', 'sandbox', 'team'])
 
 /**
- * TenantListItemResponse
- */
-export const zTenantListItemResponse = z.object({
-  created_at: z.int().nullish(),
-  current: z.boolean(),
-  id: z.string(),
-  last_opened_at: z.int().nullish(),
-  name: z.string().nullish(),
-  plan: zCloudPlan.nullish(),
-  status: z.string().nullish(),
-})
-
-/**
- * TenantListResponse
- */
-export const zTenantListResponse = z.object({
-  workspaces: z.array(zTenantListItemResponse),
-})
-
-/**
  * TenantAccountRole
  */
 export const zTenantAccountRole = z.enum(['admin', 'dataset_operator', 'editor', 'normal', 'owner'])
@@ -1636,6 +1638,27 @@ export const zCurrentWorkspaceSummaryResponse = z.object({
   name: z.string(),
   plan: zCloudPlan.nullable(),
   role: zTenantAccountRole,
+})
+
+/**
+ * TenantListItemResponse
+ */
+export const zTenantListItemResponse = z.object({
+  created_at: z.int().nullish(),
+  current: z.boolean(),
+  id: z.string(),
+  last_opened_at: z.int().nullish(),
+  name: z.string().nullish(),
+  plan: zCloudPlan.nullish(),
+  role: zTenantAccountRole,
+  status: z.string().nullish(),
+})
+
+/**
+ * TenantListResponse
+ */
+export const zTenantListResponse = z.object({
+  workspaces: z.array(zTenantListItemResponse),
 })
 
 /**
@@ -3955,6 +3978,13 @@ export const zAccountWithRoleListResponseWritable = z.object({
  */
 export const zGetWorkspacesResponse = zTenantListResponse
 
+export const zPostWorkspacesBody = zCreateWorkspacePayload
+
+/**
+ * Created
+ */
+export const zPostWorkspacesResponse = zCreateWorkspaceResponse
+
 export const zGetWorkspacesCurrentAgentProviderByProviderNamePath = z.object({
   provider_name: z.string(),
 })
@@ -6116,6 +6146,15 @@ export const zPostWorkspacesSwitchBody = zSwitchWorkspacePayload
  * Success
  */
 export const zPostWorkspacesSwitchResponse = zSwitchWorkspaceResponse
+
+export const zPostWorkspacesByTenantIdArchivePath = z.object({
+  tenant_id: z.string(),
+})
+
+/**
+ * Archived
+ */
+export const zPostWorkspacesByTenantIdArchiveResponse = zWorkspaceOperationResponse
 
 export const zGetWorkspacesByTenantIdModelProvidersByProviderByIconTypeByLangPath = z.object({
   icon_type: z.string(),

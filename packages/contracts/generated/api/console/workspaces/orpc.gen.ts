@@ -255,6 +255,9 @@ import {
   zPatchWorkspacesCurrentSkillsBySkillIdVersionsByVersionIdBody,
   zPatchWorkspacesCurrentSkillsBySkillIdVersionsByVersionIdPath,
   zPatchWorkspacesCurrentSkillsBySkillIdVersionsByVersionIdResponse,
+  zPostWorkspacesBody,
+  zPostWorkspacesByTenantIdArchivePath,
+  zPostWorkspacesByTenantIdArchiveResponse,
   zPostWorkspacesCurrentCustomizedSnippetsBody,
   zPostWorkspacesCurrentCustomizedSnippetsBySnippetIdUseCountIncrementPath,
   zPostWorkspacesCurrentCustomizedSnippetsBySnippetIdUseCountIncrementResponse,
@@ -439,6 +442,7 @@ import {
   zPostWorkspacesCustomConfigWebappLogoUploadResponse,
   zPostWorkspacesInfoBody,
   zPostWorkspacesInfoResponse,
+  zPostWorkspacesResponse,
   zPostWorkspacesSwitchBody,
   zPostWorkspacesSwitchResponse,
   zPutWorkspacesCurrentAgentsByAgentIdSkillsBody,
@@ -4818,6 +4822,25 @@ export const switch3 = {
   post: post82,
 }
 
+/**
+ * Archive an owned, non-current workspace after empty-workspace checks
+ */
+export const post83 = oc
+  .route({
+    inputStructure: 'detailed',
+    method: 'POST',
+    operationId: 'postWorkspacesByTenantIdArchive',
+    path: '/workspaces/{tenant_id}/archive',
+    summary: 'Archive an owned, non-current workspace after empty-workspace checks',
+    tags: ['console'],
+  })
+  .input(z.object({ params: zPostWorkspacesByTenantIdArchivePath }))
+  .output(zPostWorkspacesByTenantIdArchiveResponse)
+
+export const archive = {
+  post: post83,
+}
+
 export const get105 = oc
   .route({
     inputStructure: 'detailed',
@@ -4846,6 +4869,7 @@ export const modelProviders2 = {
 }
 
 export const byTenantId = {
+  archive,
   modelProviders: modelProviders2,
 }
 
@@ -4859,8 +4883,25 @@ export const get106 = oc
   })
   .output(zGetWorkspacesResponse)
 
+/**
+ * Create a workspace through the RBAC-aware owner creation path
+ */
+export const post84 = oc
+  .route({
+    inputStructure: 'detailed',
+    method: 'POST',
+    operationId: 'postWorkspaces',
+    path: '/workspaces',
+    successStatus: 201,
+    summary: 'Create a workspace through the RBAC-aware owner creation path',
+    tags: ['console'],
+  })
+  .input(z.object({ body: zPostWorkspacesBody }))
+  .output(zPostWorkspacesResponse)
+
 export const workspaces = {
   get: get106,
+  post: post84,
   current,
   customConfig,
   info: info4,

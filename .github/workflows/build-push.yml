@@ -75,8 +75,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Depot CLI
-        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
 
       - name: Extract metadata for Docker
         id: meta
@@ -86,9 +86,8 @@ jobs:
 
       - name: Build Docker image
         id: build
-        uses: depot/build-push-action@98e78adca7817480b8185f474a400b451d74e287 # v1.18.0
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
-          project: ${{ vars.DEPOT_PROJECT_ID }}
           context: ${{ matrix.build_context }}
           file: ${{ matrix.file }}
           platforms: ${{ matrix.platform }}
@@ -114,7 +113,7 @@ jobs:
           retention-days: 1
 
   fork-build-validate:
-    if: github.repository != 'langgenius/dify'
+    if: github.repository != 'langgenius/dify' && github.repository != 'yoshovski/dify'
     runs-on: ubuntu-24.04
     strategy:
       matrix:

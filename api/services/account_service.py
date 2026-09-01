@@ -1499,6 +1499,27 @@ class TenantService:
             session.commit()
 
     @staticmethod
+    def archive_tenant(tenant: Tenant, *, session: Session) -> None:
+        """Archive an empty workspace without deleting any tenant-owned data.
+
+        Archiving is intentionally refused while apps or datasets exist. The
+        caller is responsible for owner authorization and for preventing the
+        active workspace from being archived.
+        """
+        app_count = session.scalar(select(func.count()).select_from(App).where(App.tenant_id == tenant.id)) or 0
+        if app_count:
+            raise ValueError("Cannot archive a workspace with existing apps. Delete them first.")
+
+        dataset_count = (
+            session.scalar(select(func.count()).select_from(Dataset).where(Dataset.tenant_id == tenant.id)) or 0
+        )
+        if dataset_count:
+            raise ValueError("Cannot archive a workspace with existing knowledge bases. Delete them first.")
+
+        tenant.status = TenantStatus.ARCHIVE
+        session.commit()
+
+    @staticmethod
     def get_tenant_members(tenant: Tenant, *, session: Session) -> list[Account]:
         """Get tenant members"""
         stmt = (

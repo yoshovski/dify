@@ -118,6 +118,14 @@ export const updateWorkspaceInfo = ({
   return post<PostWorkspacesInfoResponse>(url, { body })
 }
 
+export const createWorkspace = (name: string): Promise<{ result: string; id: string }> => {
+  return post<{ result: string; id: string }>('/workspaces', { body: { name } })
+}
+
+export const archiveWorkspace = (workspaceId: string): Promise<{ result: string }> => {
+  return post<{ result: string }>(`/workspaces/${workspaceId}/archive`, {})
+}
+
 type InvitationCheckData = {
   workspace_name: string
   email: string

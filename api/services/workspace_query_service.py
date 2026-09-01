@@ -18,6 +18,7 @@ class WorkspaceRecord(NamedTuple):
     status: str
     created_at: datetime
     last_opened_at: datetime | None
+    role: str
 
 
 class WorkspaceQuery(Protocol):
@@ -32,6 +33,7 @@ class WorkspaceSummary(NamedTuple):
     created_at: datetime
     last_opened_at: datetime | None
     current: bool
+    role: str
 
 
 class WorkspaceQueryService:
@@ -60,6 +62,7 @@ class WorkspaceQueryService:
                 created_at=record.created_at,
                 last_opened_at=record.last_opened_at,
                 current=record.id == context.active_workspace_id,
+                role=record.role,
             )
             for record in records
         )

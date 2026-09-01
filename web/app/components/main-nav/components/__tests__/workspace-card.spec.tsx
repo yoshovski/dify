@@ -160,6 +160,7 @@ describe('WorkspaceCard', () => {
         status: 'normal',
         created_at: 0,
         current: true,
+        role: 'owner',
       },
       {
         id: 'workspace-2',
@@ -168,6 +169,7 @@ describe('WorkspaceCard', () => {
         status: 'normal',
         created_at: 0,
         current: false,
+        role: 'owner',
       },
     ]
     mockFetchWorkspaces.mockResolvedValue({ workspaces: mockWorkspaces })
@@ -372,7 +374,10 @@ describe('WorkspaceCard', () => {
     ).toBeInTheDocument()
     const workspaceItem = within(panel).getByRole('button', { name: 'Evan Workspace' })
     expect(workspaceItem).toBeInTheDocument()
-    expect(workspaceItem.parentElement).toHaveClass('max-h-[240px]', 'overflow-y-auto')
+    expect(workspaceItem.parentElement?.parentElement).toHaveClass(
+      'max-h-[240px]',
+      'overflow-y-auto',
+    )
   })
 
   it('filters workspace switcher options from the search action', async () => {
@@ -408,6 +413,7 @@ describe('WorkspaceCard', () => {
         created_at: 1,
         last_opened_at: 20,
         current: true,
+        role: 'owner',
       },
       {
         id: 'workspace-2',
@@ -417,6 +423,7 @@ describe('WorkspaceCard', () => {
         created_at: 3,
         last_opened_at: null,
         current: false,
+        role: 'owner',
       },
       {
         id: 'workspace-3',
@@ -426,6 +433,7 @@ describe('WorkspaceCard', () => {
         created_at: 2,
         last_opened_at: 30,
         current: false,
+        role: 'normal',
       },
     ]
     renderWorkspaceCard()
