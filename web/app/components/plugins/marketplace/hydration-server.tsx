@@ -1,7 +1,8 @@
-import type { SearchParams } from 'nuqs'
+import type { SearchParams } from 'nuqs/server'
+import type { MarketplaceSearchParams } from './search-params'
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { createLoader } from 'nuqs/server'
-import { getQueryClientServer } from '@/context/query-client-server'
+import { getQueryClient } from '@/app/get-query-client'
 import { marketplaceQuery } from '@/service/client'
 import { PLUGIN_CATEGORY_WITH_COLLECTIONS } from './constants'
 import { marketplaceSearchParamsParsers } from './search-params'
@@ -14,16 +15,18 @@ async function getDehydratedState(searchParams?: Promise<SearchParams>) {
     return
   }
   const loadSearchParams = createLoader(marketplaceSearchParamsParsers)
-  const params = await loadSearchParams(searchParams)
+  const params: MarketplaceSearchParams = await loadSearchParams(searchParams)
 
   if (!PLUGIN_CATEGORY_WITH_COLLECTIONS.has(params.category)) {
     return
   }
 
-  const queryClient = getQueryClientServer()
+  const queryClient = getQueryClient()
 
   await queryClient.prefetchQuery({
-    queryKey: marketplaceQuery.collections.queryKey({ input: { query: getCollectionsParams(params.category) } }),
+    queryKey: marketplaceQuery.collections.queryKey({
+      input: { query: getCollectionsParams(params.category) },
+    }),
     queryFn: () => getMarketplaceCollectionsAndPlugins(getCollectionsParams(params.category)),
   })
   return dehydrate(queryClient)
@@ -37,9 +40,5 @@ export async function HydrateQueryClient({
   children: React.ReactNode
 }) {
   const dehydratedState = await getDehydratedState(searchParams)
-  return (
-    <HydrationBoundary state={dehydratedState}>
-      {children}
-    </HydrationBoundary>
-  )
+  return <HydrationBoundary state={dehydratedState}>{children}</HydrationBoundary>
 }

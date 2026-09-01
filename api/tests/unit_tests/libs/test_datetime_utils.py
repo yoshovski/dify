@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 import pytz
 
-from libs.datetime_utils import naive_utc_now, parse_time_range
+from libs.datetime_utils import naive_utc_now, parse_time_range, to_utc_timestamp
 
 
 def test_naive_utc_now(monkeypatch: pytest.MonkeyPatch):
@@ -22,6 +22,18 @@ def test_naive_utc_now(monkeypatch: pytest.MonkeyPatch):
     naive_time = naive_datetime.time()
     utc_time = tz_aware_utc_now.time()
     assert naive_time == utc_time
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        datetime.datetime(2024, 1, 1),
+        datetime.datetime(2024, 1, 1, tzinfo=datetime.UTC),
+        datetime.datetime(2024, 1, 1, 9, tzinfo=datetime.timezone(datetime.timedelta(hours=9))),
+    ],
+)
+def test_to_utc_timestamp(value: datetime.datetime):
+    assert to_utc_timestamp(value) == 1704067200
 
 
 class TestParseTimeRange:
@@ -104,7 +116,7 @@ class TestParseTimeRange:
     def test_parse_time_range_dst_ambiguous_time(self):
         """Test parsing during DST ambiguous time (fall back)."""
         # This test simulates DST fall back where 2:30 AM occurs twice
-        with patch("pytz.timezone") as mock_timezone:
+        with patch("pytz.timezone", autospec=True) as mock_timezone:
             # Mock timezone that raises AmbiguousTimeError
             mock_tz = mock_timezone.return_value
 
@@ -135,7 +147,7 @@ class TestParseTimeRange:
 
     def test_parse_time_range_dst_nonexistent_time(self):
         """Test parsing during DST nonexistent time (spring forward)."""
-        with patch("pytz.timezone") as mock_timezone:
+        with patch("pytz.timezone", autospec=True) as mock_timezone:
             # Mock timezone that raises NonExistentTimeError
             mock_tz = mock_timezone.return_value
 

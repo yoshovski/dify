@@ -2,6 +2,7 @@ import json
 
 from flask_restx import Resource
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from controllers.common.schema import register_schema_models
 from controllers.console.wraps import setup_required
@@ -42,14 +43,16 @@ class EnterpriseWorkspace(Resource):
     def post(self):
         args = WorkspaceCreatePayload.model_validate(inner_api_ns.payload or {})
 
-        account = db.session.query(Account).filter_by(email=args.owner_email).first()
+        account = db.session.scalar(select(Account).where(Account.email == args.owner_email).limit(1))
         if account is None:
             return {"message": "owner account not found."}, 404
 
-        tenant = TenantService.create_tenant(args.name, is_from_dashboard=True)
-        TenantService.create_tenant_member(tenant, account, role="owner")
-
-        tenant_was_created.send(tenant)
+        tenant = TenantService.create_owner_tenant(
+            account,
+            name=args.name,
+            is_from_dashboard=True,
+            session=db.session(),
+        )
 
         resp = {
             "id": tenant.id,
@@ -83,7 +86,7 @@ class EnterpriseWorkspaceNoOwnerEmail(Resource):
     def post(self):
         args = WorkspaceOwnerlessPayload.model_validate(inner_api_ns.payload or {})
 
-        tenant = TenantService.create_tenant(args.name, is_from_dashboard=True)
+        tenant = TenantService.create_tenant(args.name, is_from_dashboard=True, session=db.session())
 
         tenant_was_created.send(tenant)
 

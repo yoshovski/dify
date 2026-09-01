@@ -25,16 +25,6 @@ class HumanInputFormKind(enum.StrEnum):
     DELIVERY_TEST = enum.auto()  # Form created for delivery tests.
 
 
-class DeliveryMethodType(enum.StrEnum):
-    """Delivery method types for human input forms."""
-
-    # WEBAPP controls whether the form is delivered to the web app. It not only controls
-    # the standalone web app, but also controls the installed apps in the console.
-    WEBAPP = enum.auto()
-
-    EMAIL = enum.auto()
-
-
 class ButtonStyle(enum.StrEnum):
     """Button styles for user actions."""
 
@@ -52,21 +42,35 @@ class TimeoutUnit(enum.StrEnum):
 
 
 class FormInputType(enum.StrEnum):
-    """Form input types."""
+    """Form input types.
 
-    TEXT_INPUT = enum.auto()
-    PARAGRAPH = enum.auto()
+    Name for this enumeration are intentionally keep the same as those for
+    `VariableEntityType`.
+    """
+
+    # Both `TEXT_INPUT` and `PARAGRAPH` represent string input fields.
+    # The corresponding generated variable type is `SegmentType.STRING`.
+    PARAGRAPH = "paragraph"
+
+    # A single-select input field (e.g., a dropdown or radio buttons).
+    # The corresponding generated variable type is `SegmentType.STRING`.
+    SELECT = "select"
+
+    # A file input field that accepts a single file.
+    #  The corresponding generated variable type is `SegmentType.FILE`.
+    FILE = "file"
+
+    # A file input field that accepts zero or more files.
+    # The corresponding generated variable type is `SegmentType.ARRAY_FILE`.
+    FILE_LIST = "file-list"
 
 
-class PlaceholderType(enum.StrEnum):
-    """Default value types for form inputs."""
+class ValueSourceType(enum.StrEnum):
+    """ValueSourceType records whether the value comes from a static setting
+    in form definition, or a variable while the workflow is running.
+    """
 
+    # `VARIABLE` means that the value comes from a variable in workflow execution
     VARIABLE = enum.auto()
+    # `CONSTANT` means that the value comes from a static setting in form definition.
     CONSTANT = enum.auto()
-
-
-class EmailRecipientType(enum.StrEnum):
-    """Email recipient types."""
-
-    MEMBER = enum.auto()
-    EXTERNAL = enum.auto()

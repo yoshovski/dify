@@ -1,19 +1,23 @@
+import { toast } from '@langgenius/dify-ui/toast'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import Toast from '@/app/components/base/toast'
-
+import { beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { useAutoDisabledDocuments } from '@/service/knowledge/use-document'
 import AutoDisabledDocument from '../auto-disabled-document'
+
+const { mockToastSuccess } = vi.hoisted(() => ({
+  mockToastSuccess: vi.fn(),
+}))
 
 type AutoDisabledDocumentsResponse = { document_ids: string[] }
 
 const createMockQueryResult = (
   data: AutoDisabledDocumentsResponse | undefined,
   isLoading: boolean,
-) => ({
-  data,
-  isLoading,
-}) as ReturnType<typeof useAutoDisabledDocuments>
+) =>
+  ({
+    data,
+    isLoading,
+  }) as ReturnType<typeof useAutoDisabledDocuments>
 
 const mockMutateAsync = vi.fn()
 const mockInvalidDisabledDocument = vi.fn()
@@ -26,9 +30,9 @@ vi.mock('@/service/knowledge/use-document', () => ({
   useInvalidDisabledDocument: vi.fn(() => mockInvalidDisabledDocument),
 }))
 
-vi.mock('@/app/components/base/toast', () => ({
-  default: {
-    notify: vi.fn(),
+vi.mock('@langgenius/dify-ui/toast', () => ({
+  toast: {
+    success: mockToastSuccess,
   },
 }))
 
@@ -42,9 +46,7 @@ describe('AutoDisabledDocument', () => {
 
   describe('Rendering', () => {
     it('should render nothing when loading', () => {
-      mockUseAutoDisabledDocuments.mockReturnValue(
-        createMockQueryResult(undefined, true),
-      )
+      mockUseAutoDisabledDocuments.mockReturnValue(createMockQueryResult(undefined, true))
 
       const { container } = render(<AutoDisabledDocument datasetId="test-dataset" />)
       expect(container.firstChild).toBeNull()
@@ -60,9 +62,7 @@ describe('AutoDisabledDocument', () => {
     })
 
     it('should render nothing when document_ids is undefined', () => {
-      mockUseAutoDisabledDocuments.mockReturnValue(
-        createMockQueryResult(undefined, false),
-      )
+      mockUseAutoDisabledDocuments.mockReturnValue(createMockQueryResult(undefined, false))
 
       const { container } = render(<AutoDisabledDocument datasetId="test-dataset" />)
       expect(container.firstChild).toBeNull()
@@ -134,10 +134,7 @@ describe('AutoDisabledDocument', () => {
       fireEvent.click(actionButton)
 
       await waitFor(() => {
-        expect(Toast.notify).toHaveBeenCalledWith({
-          type: 'success',
-          message: expect.any(String),
-        })
+        expect(toast.success).toHaveBeenCalledWith(expect.any(String))
       })
     })
   })
