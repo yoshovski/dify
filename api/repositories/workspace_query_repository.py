@@ -30,6 +30,7 @@ class WorkspaceQueryRepository(
                 Tenant.status,
                 Tenant.created_at,
                 TenantAccountJoin.last_opened_at,
+                TenantAccountJoin.role,
             )
             .join(TenantAccountJoin, TenantAccountJoin.tenant_id == Tenant.id)
             .where(
@@ -48,8 +49,9 @@ class WorkspaceQueryRepository(
                     status=status.value,
                     created_at=created_at,
                     last_opened_at=last_opened_at,
+                    role=role.value,
                 )
-                for workspace_id, name, status, created_at, last_opened_at in rows
+                for workspace_id, name, status, created_at, last_opened_at, role in rows
             )
 
     @override

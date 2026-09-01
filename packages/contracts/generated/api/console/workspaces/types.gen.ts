@@ -8,6 +8,15 @@ export type TenantListResponse = {
   workspaces: Array<TenantListItemResponse>
 }
 
+export type CreateWorkspacePayload = {
+  name: string
+}
+
+export type CreateWorkspaceResponse = {
+  id: string
+  result: string
+}
+
 export type AgentProviderResponse = {
   [key: string]: unknown
 }
@@ -1248,6 +1257,10 @@ export type SwitchWorkspaceResponse = {
   result: string
 }
 
+export type WorkspaceOperationResponse = {
+  result: string
+}
+
 export type TenantListItemResponse = {
   created_at?: number | null
   current: boolean
@@ -1255,6 +1268,7 @@ export type TenantListItemResponse = {
   last_opened_at?: number | null
   name?: string | null
   plan?: CloudPlan | null
+  role: TenantAccountRole
   status?: string | null
 }
 
@@ -2832,6 +2846,19 @@ export type GetWorkspacesResponses = {
 }
 
 export type GetWorkspacesResponse = GetWorkspacesResponses[keyof GetWorkspacesResponses]
+
+export type PostWorkspacesData = {
+  body: CreateWorkspacePayload
+  path?: never
+  query?: never
+  url: '/workspaces'
+}
+
+export type PostWorkspacesResponses = {
+  201: CreateWorkspaceResponse
+}
+
+export type PostWorkspacesResponse = PostWorkspacesResponses[keyof PostWorkspacesResponses]
 
 export type GetWorkspacesCurrentAgentProviderByProviderNameData = {
   body?: never
@@ -6758,6 +6785,22 @@ export type PostWorkspacesSwitchResponses = {
 
 export type PostWorkspacesSwitchResponse =
   PostWorkspacesSwitchResponses[keyof PostWorkspacesSwitchResponses]
+
+export type PostWorkspacesByTenantIdArchiveData = {
+  body?: never
+  path: {
+    tenant_id: string
+  }
+  query?: never
+  url: '/workspaces/{tenant_id}/archive'
+}
+
+export type PostWorkspacesByTenantIdArchiveResponses = {
+  200: WorkspaceOperationResponse
+}
+
+export type PostWorkspacesByTenantIdArchiveResponse =
+  PostWorkspacesByTenantIdArchiveResponses[keyof PostWorkspacesByTenantIdArchiveResponses]
 
 export type GetWorkspacesByTenantIdModelProvidersByProviderByIconTypeByLangData = {
   body?: never

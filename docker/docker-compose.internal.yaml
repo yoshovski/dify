@@ -1,0 +1,449 @@
+x-dify-env: &dify_env
+  # Public URLs (used by the frontend + CORS + callbacks)
+  CONSOLE_WEB_URL: ${CONSOLE_WEB_URL:-}
+  CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+  APP_WEB_URL: ${APP_WEB_URL:-}
+  APP_API_URL: ${APP_API_URL:-}
+  SERVICE_API_URL: ${SERVICE_API_URL:-}
+  FILES_URL: ${FILES_URL:-}
+  INTERNAL_FILES_URL: ${INTERNAL_FILES_URL:-}
+  FORCE_VERIFYING_SIGNATURE: "false"
+  TOP_K_MAX_VALUE: ${TOP_K_MAX_VALUE}
+  
+  # PROXY CONFIGURATION START
+  NO_PROXY: "dify-sandbox,dify-agent-backend,dify-agent-local-sandbox,global-minio,localhost,127.0.0.1,shared-ai-litellm,scraping-firecrawl-api,inference-engine,whisper,dify-api,dify-worker,dify-plugin-daemon,dify-db,dify-redis,dify-weaviate,.yoshovski.com,ragflow-cpu"
+  no_proxy: "dify-sandbox,dify-agent-backend,dify-agent-local-sandbox,global-minio,localhost,127.0.0.1,shared-ai-litellm,scraping-firecrawl-api,inference-engine,whisper,dify-api,dify-worker,dify-plugin-daemon,dify-db,dify-redis,dify-weaviate,.yoshovski.com,ragflow-cpu"
+
+  # Core runtime
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DEPLOY_ENV: ${DEPLOY_ENV:-PRODUCTION}
+  DEPLOYMENT_EDITION: ${DEPLOYMENT_EDITION:-COMMUNITY}
+  ALLOW_CREATE_WORKSPACE: ${ALLOW_CREATE_WORKSPACE:-true}
+  SECRET_KEY: ${SECRET_KEY}
+  INIT_PASSWORD: ${INIT_PASSWORD:-}
+  MIGRATION_ENABLED: ${MIGRATION_ENABLED:-true}
+  RESPECT_XFORWARD_HEADERS_ENABLED: ${RESPECT_XFORWARD_HEADERS_ENABLED:-true}
+
+  # Postgres
+  DB_HOST: ${DB_HOST:-dify-db}
+  DB_PORT: ${DB_PORT:-5432}
+  DB_USERNAME: ${DB_USERNAME:-postgres}
+  DB_PASSWORD: ${DB_PASSWORD}
+  DB_DATABASE: ${DB_DATABASE:-dify}
+
+  # Redis / Celery
+  REDIS_HOST: ${REDIS_HOST:-dify-redis}
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+  REDIS_MAX_CONNECTIONS: ${REDIS_MAX_CONNECTIONS:-100}
+  CELERY_BROKER_URL: ${CELERY_BROKER_URL}
+  CELERY_BACKEND: ${CELERY_BACKEND:-redis}
+
+  # Vector store (Weaviate default in Dify compose)
+  VECTOR_STORE: ${VECTOR_STORE:-weaviate}
+  WEAVIATE_ENDPOINT: ${WEAVIATE_ENDPOINT:-http://dify-weaviate:8080}
+  WEAVIATE_API_KEY: ${WEAVIATE_API_KEY}
+
+  # Sandbox / SSRF proxy
+  CODE_EXECUTION_ENDPOINT: ${CODE_EXECUTION_ENDPOINT:-http://dify-sandbox:8194}
+  CODE_EXECUTION_API_KEY: ${SANDBOX_API_KEY:-dify-sandbox}
+  SSRF_PROXY_HTTP_URL: ${SSRF_PROXY_HTTP_URL:-http://dify-ssrf-proxy:3128}
+  SSRF_PROXY_HTTPS_URL: ${SSRF_PROXY_HTTPS_URL:-http://dify-ssrf-proxy:3128}
+
+  # Dify Agent (introduced in v1.16, expanded in v1.17)
+  AGENT_BACKEND_BASE_URL: ${AGENT_BACKEND_BASE_URL:-http://dify-agent-backend:5050}
+  AGENT_BACKEND_API_TOKEN: ${DIFY_AGENT_API_TOKEN}
+
+  # Plugin daemon
+  PLUGIN_DAEMON_URL: ${PLUGIN_DAEMON_URL:-http://dify-plugin-daemon:5002}
+  ENDPOINT_URL_TEMPLATE: ${ENDPOINT_URL_TEMPLATE}
+  PLUGIN_DAEMON_KEY: ${PLUGIN_DAEMON_KEY}
+  PLUGIN_DIFY_INNER_API_URL: ${PLUGIN_DIFY_INNER_API_URL:-http://dify-api:5001}
+  PLUGIN_DIFY_INNER_API_KEY: ${PLUGIN_DIFY_INNER_API_KEY}
+  INNER_API_KEY_FOR_PLUGIN: ${PLUGIN_DIFY_INNER_API_KEY}
+  PLUGIN_REMOTE_INSTALLING_ENABLED: "false"
+  PLUGIN_DEBUGGING_ENABLED: "false"
+  PLUGIN_S3_USE_AWS_MANAGED_IAM: "false"
+  PLUGIN_S3_USE_PATH_STYLE: "true"
+
+  # SMTP Configuration
+  MAIL_TYPE: ${MAIL_TYPE:-smtp}
+  MAIL_DEFAULT_SEND_FROM: ${MAIL_DEFAULT_SEND_FROM:-}
+  SMTP_SERVER: ${SMTP_SERVER}
+  SMTP_PORT: ${SMTP_PORT}
+  SMTP_USER: ${SMTP_USER}
+  SMTP_USERNAME: ${SMTP_USER}
+  SMTP_PASSWORD: ${SMTP_PASSWORD}
+  SMTP_USE_TLS: ${SMTP_USE_TLS}
+  SMTP_USE_STARTTLS: ${SMTP_USE_STARTTLS}
+  SMTP_OPPORTUNISTIC_TLS: ${SMTP_OPPORTUNISTIC_TLS}
+
+  # Storage Configuration
+  STORAGE_TYPE: s3
+  S3_ENDPOINT: http://global-minio:9000
+  S3_BUCKET_NAME: dify-storage
+  S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+  S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+  S3_REGION: us-east-1
+  S3_USE_AWS_MANAGED_IAM: "false"
+  S3_FORCE_PATH_STYLE: "true"
+
+  # v1.13.0 Architectural Updates
+  PUBSUB_REDIS_URL: redis://:${REDIS_PASSWORD}@dify-redis:6379/1
+  PUBSUB_REDIS_CHANNEL_TYPE: "sharded"
+  PUBSUB_REDIS_USE_CLUSTERS: "false"
+
+  # Human-in-the-Loop (HITL) Settings
+  HUMAN_INPUT_GLOBAL_TIMEOUT_SECONDS: 604800
+  ENABLE_HUMAN_INPUT_TIMEOUT_TASK: "true"
+  ENABLE_API_TOKEN_LAST_USED_UPDATE_TASK: "true"
+
+services:
+  dify-db:
+    image: postgres:15-alpine
+    container_name: dify-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-${DB_PASSWORD}}
+      POSTGRES_DB: ${POSTGRES_DB:-${DB_DATABASE:-dify}}
+      PGDATA: ${PGDATA:-/var/lib/postgresql/data/pgdata}
+    command: >
+      postgres -c 'max_connections=${POSTGRES_MAX_CONNECTIONS:-200}'
+               -c 'shared_buffers=${POSTGRES_SHARED_BUFFERS:-128MB}'
+               -c 'work_mem=${POSTGRES_WORK_MEM:-4MB}'
+               -c 'maintenance_work_mem=${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}'
+               -c 'effective_cache_size=${POSTGRES_EFFECTIVE_CACHE_SIZE:-4096MB}'
+    volumes:
+      - /data/volumes/ai/dify/db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${POSTGRES_DB:-dify}"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  dify-redis:
+    image: redis:7-alpine
+    container_name: dify-redis
+    restart: unless-stopped
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - /data/volumes/ai/dify/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  dify-weaviate:
+    image: semitechnologies/weaviate:1.27.0
+    container_name: dify-weaviate
+    restart: unless-stopped
+    environment:
+      QUERY_DEFAULTS_LIMIT: ${WEAVIATE_QUERY_DEFAULTS_LIMIT:-25}
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: ${WEAVIATE_AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED:-true}
+      DEFAULT_VECTORIZER_MODULE: ${WEAVIATE_DEFAULT_VECTORIZER_MODULE:-none}
+      CLUSTER_HOSTNAME: ${WEAVIATE_CLUSTER_HOSTNAME:-node1}
+      AUTHENTICATION_APIKEY_ENABLED: ${WEAVIATE_AUTHENTICATION_APIKEY_ENABLED:-true}
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: ${WEAVIATE_API_KEY}
+      AUTHENTICATION_APIKEY_USERS: ${WEAVIATE_AUTHENTICATION_APIKEY_USERS:-admin@local}
+      AUTHORIZATION_ADMINLIST_ENABLED: ${WEAVIATE_AUTHORIZATION_ADMINLIST_ENABLED:-true}
+      AUTHORIZATION_ADMINLIST_USERS: ${WEAVIATE_AUTHORIZATION_ADMINLIST_USERS:-admin@local}
+      PERSISTENCE_DATA_PATH: ${WEAVIATE_PERSISTENCE_DATA_PATH:-/var/lib/weaviate}
+    volumes:
+      - /data/volumes/ai/dify/weaviate:/var/lib/weaviate
+
+  dify-ssrf-proxy:
+    image: ubuntu/squid:latest
+    container_name: dify-ssrf-proxy
+    restart: unless-stopped
+    volumes:
+      - /data/volumes/ai/dify/ssrf_proxy/squid.conf:/etc/squid/squid.conf:ro
+    networks:
+      - ssrf_proxy_network
+      - default
+
+  dify-sandbox:
+    image: langgenius/dify-sandbox:0.2.15
+    container_name: dify-sandbox
+    restart: unless-stopped
+    environment:
+      API_KEY: ${SANDBOX_API_KEY:-dify-sandbox}
+      GIN_MODE: ${SANDBOX_GIN_MODE:-release}
+      WORKER_TIMEOUT: ${SANDBOX_WORKER_TIMEOUT:-15}
+      ENABLE_NETWORK: ${SANDBOX_ENABLE_NETWORK:-true}
+      HTTP_PROXY: ${SANDBOX_HTTP_PROXY:-http://dify-ssrf-proxy:3128}
+      HTTPS_PROXY: ${SANDBOX_HTTPS_PROXY:-http://dify-ssrf-proxy:3128}
+      SANDBOX_PORT: ${SANDBOX_PORT:-8194}
+    volumes:
+      - /data/volumes/ai/dify/sandbox/dependencies:/dependencies
+      - /data/volumes/ai/dify/sandbox/conf:/conf
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8194/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+    networks:
+      - ssrf_proxy_network
+      - default
+
+  dify-api:
+    #image: langgenius/dify-api:${DIFY_VERSION:-1.11.2}
+    image: ghcr.io/yoshovski/dify-api:${DIFY_VERSION}
+    container_name: dify-api
+    restart: unless-stopped
+    environment:
+      <<: *dify_env
+      MODE: api
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+      dify-agent-backend:
+        condition: service_started
+    volumes:
+      - /data/volumes/ai/dify/storage:/app/api/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      default:
+        aliases:
+          - api
+      ssrf_proxy_network:
+      ai_backbone_net:
+        aliases:
+          - dify-api
+          - ai_backbone_net
+
+  dify-worker:
+    #image: langgenius/dify-api:${DIFY_VERSION:-1.11.2}
+    image: ghcr.io/yoshovski/dify-api:${DIFY_VERSION}
+    container_name: dify-worker
+    restart: unless-stopped
+    environment:
+      <<: *dify_env
+      MODE: worker
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+    volumes:
+      - /data/volumes/ai/dify/storage:/app/api/storage
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_healthcheck.celery inspect ping"]
+      interval: ${COMPOSE_WORKER_HEALTHCHECK_INTERVAL:-30s}
+      timeout: ${COMPOSE_WORKER_HEALTHCHECK_TIMEOUT:-30s}
+      retries: 3
+      start_period: 60s
+      disable: ${COMPOSE_WORKER_HEALTHCHECK_DISABLED:-true}
+    networks:
+      default:
+      ssrf_proxy_network:
+      ai_backbone_net:
+        aliases:
+          - dify-worker
+
+  dify-worker-beat:
+    # image: langgenius/dify-api:${DIFY_VERSION:-1.11.2}
+    image: ghcr.io/yoshovski/dify-api:${DIFY_VERSION}
+    container_name: dify-worker-beat
+    restart: unless-stopped
+    environment:
+      <<: *dify_env
+      MODE: beat
+    depends_on:
+      dify-db:
+        condition: service_healthy
+      dify-redis:
+        condition: service_healthy
+    volumes:
+      - /data/volumes/ai/dify/storage:/app/api/storage
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A celery_healthcheck.celery inspect ping"]
+      interval: ${COMPOSE_WORKER_HEALTHCHECK_INTERVAL:-30s}
+      timeout: ${COMPOSE_WORKER_HEALTHCHECK_TIMEOUT:-30s}
+      retries: 3
+      start_period: 60s
+      disable: ${COMPOSE_WORKER_HEALTHCHECK_DISABLED:-true}
+    networks:
+      - default
+      - ssrf_proxy_network
+      - sre_public_net
+
+  dify-plugin-daemon:
+    image: langgenius/dify-plugin-daemon:${DIFY_PLUGIN_DAEMON_VERSION:-0.6.10-local}
+    container_name: dify-plugin-daemon
+    restart: unless-stopped
+    environment:
+      <<: *dify_env
+      SERVER_PORT: "5002"
+      SERVER_KEY: ${PLUGIN_DAEMON_KEY}
+      DIFY_INNER_API_URL: http://dify-api:5001
+      DIFY_INNER_API_KEY: ${PLUGIN_DIFY_INNER_API_KEY}
+      # Plugin settings to reduce errors
+      PLUGIN_REMOTE_INSTALLING_ENABLED: "false"
+      PLUGIN_REMOTE_INSTALLING_PORT: "443"
+      PLUGIN_DEBUGGING_ENABLED: "false"
+      FORCE_VERIFYING_SIGNATURE: "false"
+      PLUGIN_MAX_EXECUTION_TIMEOUT: 2400
+      PYTHON_ENV_INIT_TIMEOUT: 640
+
+      # S3 / Storage adjustments
+      PLUGIN_S3_USE_AWS_MANAGED_IAM: "false"
+      PLUGIN_S3_USE_PATH_STYLE: "true"
+      PLUGIN_S3_ENDPOINT: http://global-minio:9000
+      PLUGIN_S3_BUCKET_NAME: dify-storage
+      PLUGIN_S3_ACCESS_KEY: ${MINIO_ROOT_USER}
+      PLUGIN_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      PLUGIN_S3_REGION: us-east-1
+
+      PLUGIN_WORKING_PATH: /app/storage/cwd
+      PLUGIN_INSTALLED_PATH: /app/storage/plugin
+      PLUGIN_PACKAGE_CACHE_PATH: /app/storage/plugin_packages
+      DB_HOST: dify-db
+      DB_PORT: "5432"
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE: dify_plugin
+      DB_SSL_MODE: disable
+    volumes:
+      - /data/volumes/ai/dify/plugin:/app/storage
+    networks:
+      - default
+      - sre_public_net
+      - ai_backbone_net
+
+  # Dify Agent backend. Tokens are required so production never starts with
+  # the insecure upstream development defaults.
+  dify-agent-backend:
+    image: ghcr.io/yoshovski/dify-agent-backend:${DIFY_VERSION}
+    container_name: dify-agent-backend
+    restart: unless-stopped
+    environment:
+      DIFY_AGENT_REDIS_URL: ${DIFY_AGENT_REDIS_URL:-redis://:${REDIS_PASSWORD}@dify-redis:6379/2}
+      DIFY_AGENT_REDIS_PREFIX: ${DIFY_AGENT_REDIS_PREFIX:-dify-agent}
+      DIFY_AGENT_PLUGIN_DAEMON_URL: ${DIFY_AGENT_PLUGIN_DAEMON_URL:-http://dify-plugin-daemon:5002}
+      DIFY_AGENT_PLUGIN_DAEMON_API_KEY: ${PLUGIN_DAEMON_KEY}
+      DIFY_AGENT_INNER_API_URL: ${DIFY_AGENT_INNER_API_URL:-http://dify-api:5001}
+      DIFY_AGENT_INNER_API_KEY: ${PLUGIN_DIFY_INNER_API_KEY}
+      DIFY_AGENT_RUNTIME_BACKEND: ${DIFY_AGENT_RUNTIME_BACKEND:-local}
+      DIFY_AGENT_LOCAL_SANDBOX_ENDPOINT: ${DIFY_AGENT_LOCAL_SANDBOX_ENDPOINT:-http://dify-agent-local-sandbox:5004}
+      DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN: ${DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN:?set DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN}
+      DIFY_AGENT_STUB_API_BASE_URL: ${DIFY_AGENT_STUB_API_BASE_URL:-http://dify-agent-backend:5050/agent-stub}
+      DIFY_AGENT_SANDBOX_FILES_BASE_URL: ${DIFY_AGENT_SANDBOX_FILES_BASE_URL:-http://dify-api:5001}
+      DIFY_AGENT_SERVER_SECRET_KEY: ${DIFY_AGENT_SERVER_SECRET_KEY:?set DIFY_AGENT_SERVER_SECRET_KEY}
+      DIFY_AGENT_API_TOKEN: ${DIFY_AGENT_API_TOKEN:?set DIFY_AGENT_API_TOKEN}
+    depends_on:
+      dify-redis:
+        condition: service_healthy
+      dify-plugin-daemon:
+        condition: service_started
+    networks:
+      default:
+        aliases:
+          - agent_backend
+      agent_sandbox_network:
+
+  # Isolated local execution environment for Dify Agent.
+  dify-agent-local-sandbox:
+    image: ghcr.io/yoshovski/dify-agent-local-sandbox:${DIFY_VERSION}
+    container_name: dify-agent-local-sandbox
+    restart: unless-stopped
+    environment:
+      SHELLCTL_AUTH_TOKEN: ${DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN:?set DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN}
+      HTTP_PROXY: http://dify-agent-ssrf-proxy:3128
+      HTTPS_PROXY: http://dify-agent-ssrf-proxy:3128
+      NO_PROXY: localhost,127.0.0.1
+    volumes:
+      - /data/volumes/ai/dify/agent/home:/home/dify
+      - /data/volumes/ai/dify/agent/workspace:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5004/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      agent_sandbox_network:
+      local_sandbox_proxy_network:
+
+  # Dedicated proxy prevents Agent shell workloads from reaching private
+  # services except signed API file and agent-stub endpoints.
+  dify-agent-ssrf-proxy:
+    image: ubuntu/squid:latest
+    container_name: dify-agent-ssrf-proxy
+    restart: unless-stopped
+    volumes:
+      - ./ssrf_proxy/squid-agent.conf.template:/etc/squid/squid.conf.template:ro
+      - ./ssrf_proxy/squid-common.conf.template:/etc/squid/dify_common.conf.template:ro
+      - ./ssrf_proxy/docker-agent-entrypoint.sh:/docker-entrypoint-mount.sh:ro
+    entrypoint:
+      - sh
+      - -c
+      - cp /docker-entrypoint-mount.sh /docker-entrypoint.sh && sed -i 's/\r$$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh && /docker-entrypoint.sh
+    environment:
+      HTTP_PORT: ${SSRF_HTTP_PORT:-3128}
+      COREDUMP_DIR: ${SSRF_COREDUMP_DIR:-/var/spool/squid}
+    networks:
+      default:
+      local_sandbox_proxy_network:
+
+  dify-web:
+    # image: langgenius/dify-web:${DIFY_VERSION:-1.11.2}
+    image: ghcr.io/yoshovski/dify-web:${DIFY_VERSION}
+    container_name: dify-web
+    restart: unless-stopped
+    environment:
+      CONSOLE_API_URL: ${CONSOLE_API_URL:-}
+      APP_API_URL: ${APP_API_URL:-}
+      NEXT_TELEMETRY_DISABLED: ${NEXT_TELEMETRY_DISABLED:-0}
+      NEXT_PUBLIC_TOP_K_MAX_VALUE: ${TOP_K_MAX_VALUE}
+
+  dify-nginx:
+    image: nginx:latest
+    container_name: dify-nginx
+    restart: unless-stopped
+    depends_on:
+      - dify-web
+      - dify-api
+      - dify-plugin-daemon
+    volumes:
+      - /data/volumes/ai/dify/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - default
+      - sre_public_net
+
+  dify-minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: dify-minio-init
+    networks:
+      - ai_backbone_net
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set myminio http://global-minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}) do echo '...waiting for storage...' && sleep 1; done;
+      mc mb --ignore-existing myminio/dify-storage;
+      exit 0;
+      "
+
+networks:
+  ssrf_proxy_network:
+    driver: bridge
+    internal: true
+  agent_sandbox_network:
+    driver: bridge
+    internal: true
+  local_sandbox_proxy_network:
+    driver: bridge
+    internal: true
+  sre_public_net:
+    external: true
+  ai_backbone_net:
+    external: true

@@ -626,6 +626,7 @@ describe('MainNav', () => {
         status: 'normal',
         created_at: 0,
         current: true,
+        role: 'owner',
       },
       {
         id: 'workspace-2',
@@ -634,6 +635,7 @@ describe('MainNav', () => {
         status: 'normal',
         created_at: 0,
         current: false,
+        role: 'normal',
       },
     ]
     mockStepByStepTour.reset()

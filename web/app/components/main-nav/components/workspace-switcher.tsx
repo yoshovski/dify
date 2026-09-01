@@ -149,12 +149,16 @@ type WorkspaceSwitcherProps = {
   workspaces?: TenantListItemResponse[]
   isPending: boolean
   onSwitchWorkspace: (workspaceId: string) => void
+  onCreateWorkspace: () => void
+  onArchiveWorkspace: (workspaceId: string) => void
 }
 
 export function WorkspaceSwitcher({
   workspaces,
   isPending,
   onSwitchWorkspace,
+  onCreateWorkspace,
+  onArchiveWorkspace,
 }: WorkspaceSwitcherProps) {
   const { t } = useTranslation()
   const workspaceListLabelId = useId()
@@ -218,12 +222,12 @@ export function WorkspaceSwitcher({
               const workspaceName = getWorkspaceName(workspace)
 
               return (
-                <li key={workspace.id}>
+                <li key={workspace.id} className="flex items-center gap-1">
                   <button
                     type="button"
                     aria-current={workspace.current ? 'true' : undefined}
                     title={workspaceName}
-                    className="group flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-1 text-left outline-hidden hover:bg-state-base-hover focus-visible:inset-ring-2 focus-visible:inset-ring-state-accent-solid"
+                    className="group flex h-8 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg px-3 py-1 text-left outline-hidden hover:bg-state-base-hover focus-visible:inset-ring-2 focus-visible:inset-ring-state-accent-solid"
                     onClick={() => {
                       onSwitchWorkspace(workspace.id)
                     }}
@@ -237,12 +241,34 @@ export function WorkspaceSwitcher({
                       }
                     />
                   </button>
+                  {workspace.role === 'owner' && !workspace.current && (
+                    <button
+                      type="button"
+                      aria-label={t(($) => $['operation.delete'], { ns: 'common' })}
+                      className="flex size-6 shrink-0 items-center justify-center rounded-md text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive"
+                      onClick={() => onArchiveWorkspace(workspace.id)}
+                    >
+                      <span aria-hidden className="i-ri-delete-bin-line size-4" />
+                    </button>
+                  )}
                 </li>
               )
             })}
           </ul>
         )}
       </div>
+      {!isPending && (
+        <button
+          type="button"
+          className="mt-1 flex h-8 w-full items-center gap-2 rounded-lg px-3 py-1 text-left text-text-secondary hover:bg-state-base-hover"
+          onClick={onCreateWorkspace}
+        >
+          <span aria-hidden className="i-ri-add-line size-4" />
+          <span className="system-md-regular">
+            {t(($) => $['userProfile.createWorkspace'], { ns: 'common' })}
+          </span>
+        </button>
+      )}
     </div>
   )
 }

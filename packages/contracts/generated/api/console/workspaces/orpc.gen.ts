@@ -234,12 +234,12 @@ import {
   zGetWorkspacesCurrentToolProviderMcpToolsByProviderIdResponse,
   zGetWorkspacesCurrentToolProviderMcpUpdateByProviderIdPath,
   zGetWorkspacesCurrentToolProviderMcpUpdateByProviderIdResponse,
-  zGetWorkspacesCurrentToolProvidersQuery,
-  zGetWorkspacesCurrentToolProvidersResponse,
   zGetWorkspacesCurrentToolProviderWorkflowGetQuery,
   zGetWorkspacesCurrentToolProviderWorkflowGetResponse,
   zGetWorkspacesCurrentToolProviderWorkflowToolsQuery,
   zGetWorkspacesCurrentToolProviderWorkflowToolsResponse,
+  zGetWorkspacesCurrentToolProvidersQuery,
+  zGetWorkspacesCurrentToolProvidersResponse,
   zGetWorkspacesCurrentToolsApiResponse,
   zGetWorkspacesCurrentToolsBuiltinResponse,
   zGetWorkspacesCurrentToolsMcpResponse,
@@ -282,6 +282,9 @@ import {
   zPatchWorkspacesCurrentSkillsBySkillIdVersionsByVersionIdBody,
   zPatchWorkspacesCurrentSkillsBySkillIdVersionsByVersionIdPath,
   zPatchWorkspacesCurrentSkillsBySkillIdVersionsByVersionIdResponse,
+  zPostWorkspacesBody,
+  zPostWorkspacesByTenantIdArchivePath,
+  zPostWorkspacesByTenantIdArchiveResponse,
   zPostWorkspacesCurrentCustomizedSnippetsBody,
   zPostWorkspacesCurrentCustomizedSnippetsBySnippetIdUseCountIncrementPath,
   zPostWorkspacesCurrentCustomizedSnippetsBySnippetIdUseCountIncrementResponse,
@@ -467,6 +470,7 @@ import {
   zPostWorkspacesCustomConfigWebappLogoUploadResponse,
   zPostWorkspacesInfoBody,
   zPostWorkspacesInfoResponse,
+  zPostWorkspacesResponse,
   zPostWorkspacesSwitchBody,
   zPostWorkspacesSwitchResponse,
   zPutWorkspacesCurrentAgentsByAgentIdSkillsBody,
@@ -5214,7 +5218,27 @@ export const modelProviders2 = {
   byProvider: byProvider4,
 }
 
+/**
+ * Archive an owned, non-current workspace after empty-workspace checks
+ */
+export const postInternalWorkspaceArchive = oc
+  .route({
+    inputStructure: 'detailed',
+    method: 'POST',
+    operationId: 'postWorkspacesByTenantIdArchive',
+    path: '/workspaces/{tenant_id}/archive',
+    summary: 'Archive an owned, non-current workspace after empty-workspace checks',
+    tags: ['console'],
+  })
+  .input(z.object({ params: zPostWorkspacesByTenantIdArchivePath }))
+  .output(zPostWorkspacesByTenantIdArchiveResponse)
+
+export const archive = {
+  post: postInternalWorkspaceArchive,
+}
+
 export const byTenantId = {
+  archive,
   modelProviders: modelProviders2,
 }
 
@@ -5228,8 +5252,25 @@ export const get118 = oc
   })
   .output(zGetWorkspacesResponse)
 
+/**
+ * Create a workspace through the RBAC-aware owner creation path
+ */
+export const postInternalWorkspaceCreate = oc
+  .route({
+    inputStructure: 'detailed',
+    method: 'POST',
+    operationId: 'postWorkspaces',
+    path: '/workspaces',
+    successStatus: 201,
+    summary: 'Create a workspace through the RBAC-aware owner creation path',
+    tags: ['console'],
+  })
+  .input(z.object({ body: zPostWorkspacesBody }))
+  .output(zPostWorkspacesResponse)
+
 export const workspaces = {
   get: get118,
+  post: postInternalWorkspaceCreate,
   current,
   customConfig,
   info: info4,
