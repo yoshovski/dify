@@ -24,6 +24,7 @@ import type {
   SingleRetrievalConfig,
 } from '@/app/components/workflow/nodes/knowledge-retrieval/types'
 import type { ModelConfig } from '@/app/components/workflow/types'
+import { CollectionType } from '@/app/components/tools/types'
 import { MetadataFilteringModeEnum } from '@/app/components/workflow/nodes/knowledge-retrieval/types'
 import { DATASET_DEFAULT } from '@/config'
 import { getFileIconType } from '@/features/agent-v2/agent-detail/configure/components/orchestrate/files/file-icon'
@@ -295,7 +296,11 @@ const toDifyToolConfigs = (
   tools.flatMap((tool) => {
     if (tool.kind !== 'provider') return []
 
-    const credentialType = tool.credentialId ? (tool.credentialType ?? 'api-key') : 'unauthorized'
+    const credentialType = tool.credentialId
+      ? (tool.credentialType ?? 'api-key')
+      : tool.providerType === CollectionType.custom
+        ? 'api-key'
+        : 'unauthorized'
 
     return tool.actions.map((action) => ({
       enabled: true,

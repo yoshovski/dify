@@ -32,6 +32,7 @@ const pluginAuthState = vi.hoisted(() => ({
   credentials: [] as Credential[],
   notAllowCustomCredential: false,
   invalidPluginCredentialInfo: vi.fn(),
+  usePluginAuth: vi.fn(),
 }))
 const pluginInstallState = vi.hoisted(() => ({
   manifest: undefined as
@@ -130,10 +131,13 @@ vi.mock('@/app/components/plugins/plugin-auth/authorize/add-oauth-button', () =>
 }))
 
 vi.mock('@/app/components/plugins/plugin-auth/hooks/use-plugin-auth', () => ({
-  usePluginAuth: () => ({
-    ...pluginAuthState,
-    isAuthorized: pluginAuthState.credentials.length > 0,
-  }),
+  usePluginAuth: (...args: unknown[]) => {
+    pluginAuthState.usePluginAuth(...args)
+    return {
+      ...pluginAuthState,
+      isAuthorized: pluginAuthState.credentials.length > 0,
+    }
+  },
 }))
 
 vi.mock('@/hooks/use-credential-permissions', () => ({
@@ -517,6 +521,45 @@ function renderReadonlyAgentTools({
   )
 }
 
+const reflectedUnauthorizedCustomApiDraft = {
+  ...defaultAgentSoulConfigFormState,
+  tools: [
+    {
+      id: '519cf409-1ade-4391-80b5-bf2f48af839f',
+      kind: 'provider',
+      name: 'custom-search',
+      iconClassName: 'i-custom-public-other-default-tool-icon',
+      providerType: 'api',
+      credentialType: 'unauthorized',
+      credentialVariant: 'unauthorized',
+      actions: [
+        {
+          id: '519cf409-1ade-4391-80b5-bf2f48af839f:search',
+          name: 'Search',
+          toolName: 'search',
+          description: '',
+        },
+      ],
+    },
+  ],
+} satisfies AgentSoulConfigFormState
+
+const customApiProvider = {
+  ...googleProvider,
+  id: '519cf409-1ade-4391-80b5-bf2f48af839f',
+  name: 'custom-search',
+  type: CollectionType.custom,
+  label: {
+    en_US: 'Custom Search',
+    zh_Hans: 'Custom Search',
+  },
+  team_credentials: {
+    api_key: '******',
+  },
+  is_team_authorization: true,
+  allow_delete: true,
+} satisfies ToolWithProvider
+
 describe('AgentTools', () => {
   beforeEach(() => {
     cleanup()
@@ -814,6 +857,15 @@ describe('AgentTools', () => {
         credentialVariant: 'unauthorized',
       })
       expect(store.get(isAgentComposerDirtyAtom)).toBe(false)
+    })
+
+    it('should trust provider-managed authorization for reflected custom API tools', () => {
+      toolProviderState.customTools = [customApiProvider]
+      renderAgentTools(reflectedUnauthorizedCustomApiDraft)
+
+      expect(screen.getByRole('button', { name: 'Custom Search' })).toBeInTheDocument()
+      expect(screen.queryByText('tools.notAuthorized')).not.toBeInTheDocument()
+      expect(pluginAuthState.usePluginAuth).not.toHaveBeenCalled()
     })
 
     it('should open authorization actions for reflected OAuth provider tools', async () => {
