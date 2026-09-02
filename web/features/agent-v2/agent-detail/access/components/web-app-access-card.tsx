@@ -328,7 +328,7 @@ function createSettingsAppInfo(agent: AgentAppDetailWithSite): SettingsAppInfo |
 
   return {
     id: appId,
-    mode: AppModeEnum.CHAT,
+    mode: AppModeEnum.AGENT,
     site: {
       title: site.title ?? agent.name,
       description: site.description ?? agent.description ?? '',
