@@ -109,6 +109,12 @@ const INPUT_PLACEHOLDER_SUPPORTED_MODES: ReadonlyArray<AppModeEnum> = [
   AppModeEnum.CHAT,
   AppModeEnum.AGENT_CHAT,
   AppModeEnum.ADVANCED_CHAT,
+  AppModeEnum.AGENT,
+]
+const WORKFLOW_DETAILS_SUPPORTED_MODES: ReadonlyArray<AppModeEnum> = [
+  AppModeEnum.WORKFLOW,
+  AppModeEnum.ADVANCED_CHAT,
+  AppModeEnum.AGENT,
 ]
 
 const prefixSettings = 'overview.appInfo.settings'
@@ -555,12 +561,7 @@ const SettingsModal: FC<ISettingsModalProps> = ({
                         {t(($) => $[`${prefixSettings}.workflow.subTitle`], { ns: 'appOverview' })}
                       </FieldLabel>
                       <Switch
-                        disabled={
-                          !(
-                            appInfo.mode === AppModeEnum.WORKFLOW ||
-                            appInfo.mode === AppModeEnum.ADVANCED_CHAT
-                          )
-                        }
+                        disabled={!WORKFLOW_DETAILS_SUPPORTED_MODES.includes(appInfo.mode)}
                         checked={inputInfo.show_workflow_steps}
                         onCheckedChange={(v) =>
                           setInputInfo({ ...inputInfo, show_workflow_steps: v })

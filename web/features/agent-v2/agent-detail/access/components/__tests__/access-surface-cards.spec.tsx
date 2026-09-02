@@ -436,6 +436,44 @@ describe('Agent access surface cards', () => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['agent-detail', 'agent-1'] })
     })
 
+    it('should allow workflow details to be hidden in the Agent web app', async () => {
+      const user = userEvent.setup()
+      const agent = createAgent({
+        site: {
+          ...createAgent().site!,
+          show_workflow_steps: true,
+        },
+      })
+      mocks.siteMutation.mockResolvedValueOnce({
+        ...agent.site!,
+        app_id: 'app-1',
+        code: 'site-token',
+      })
+
+      renderWithQueryClient(<WebAppAccessCard agent={agent} agentId="agent-1" isLoading={false} />)
+
+      await user.click(
+        screen.getByRole('button', { name: 'agentV2.agentDetail.access.webApp.actions.settings' }),
+      )
+      const dialog = await screen.findByRole('dialog', {
+        name: 'appOverview.overview.appInfo.settings.title',
+      })
+      const workflowDetailsSwitch = within(dialog).getByRole('switch', {
+        name: 'appOverview.overview.appInfo.settings.workflow.subTitle',
+      })
+
+      expect(workflowDetailsSwitch).toBeEnabled()
+      expect(workflowDetailsSwitch).toBeChecked()
+      await user.click(workflowDetailsSwitch)
+      await user.click(within(dialog).getByRole('button', { name: 'common.operation.save' }))
+
+      await waitFor(() => {
+        expect(mocks.siteMutation.mock.calls[0]?.[0].body).toEqual(
+          expect.objectContaining({ show_workflow_steps: false }),
+        )
+      })
+    })
+
     it('should fall back to the Agent icon tuple when WebApp site icon data is missing', async () => {
       const user = userEvent.setup()
       const agent = createAgent({
