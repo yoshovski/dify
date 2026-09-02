@@ -828,14 +828,14 @@ describe('WorkflowInlineAgentConfigureWorkspace', () => {
       expect(screen.queryByRole('region', { name: 'build-chat' })).not.toBeInTheDocument()
     })
 
-    it('should keep preview disabled for an inline agent in community edition', async () => {
+    it('should enable preview for an inline agent in community edition', async () => {
       renderWorkspace({ deploymentEdition: 'COMMUNITY' })
 
       expect(
         await screen.findByRole('radio', {
           name: 'agentV2.agentDetail.configure.rightPanel.preview',
         }),
-      ).toBeDisabled()
+      ).toBeEnabled()
       expect(screen.getByRole('region', { name: 'build-chat' })).toBeInTheDocument()
       expect(screen.queryByRole('region', { name: 'preview-chat' })).not.toBeInTheDocument()
     })

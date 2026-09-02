@@ -218,7 +218,7 @@ class TestWorkspaceMutations:
         user = make_account_with_tenant(tenant)
 
         with app.test_request_context(f"/workspaces/{tenant.id}/archive"), pytest.raises(Conflict):
-            method(api, tenant.id, workspace_session, user)
+            method(api, workspace_session, user, tenant.id)
 
     def test_archive_requires_owner(self, app: Flask, workspace_session: scoped_session[Session]):
         api = ArchiveWorkspaceApi()
@@ -233,7 +233,7 @@ class TestWorkspaceMutations:
             patch("controllers.console.workspace.workspace.TenantService.is_owner", return_value=False),
             pytest.raises(Unauthorized),
         ):
-            method(api, tenant.id, workspace_session, user)
+            method(api, workspace_session, user, tenant.id)
 
     def test_archive_delegates_data_safety_check(self, app: Flask, workspace_session: scoped_session[Session]):
         api = ArchiveWorkspaceApi()
@@ -248,7 +248,7 @@ class TestWorkspaceMutations:
             patch("controllers.console.workspace.workspace.TenantService.is_owner", return_value=True),
             patch("controllers.console.workspace.workspace.TenantService.archive_tenant") as archive_tenant,
         ):
-            result, status = method(api, tenant.id, workspace_session, user)
+            result, status = method(api, workspace_session, user, tenant.id)
 
         assert status == HTTPStatus.OK
         assert result == {"result": "success"}

@@ -1630,7 +1630,7 @@ describe('AgentConfigurePage', () => {
       expect(screen.getByRole('region', { name: 'preview-chat' })).toHaveTextContent('preview:none')
     })
 
-    it('should keep preview disabled in community edition', () => {
+    it('should enable preview in community edition', () => {
       editionState.deploymentEdition = 'COMMUNITY'
       mocks.queryState.composer = {
         data: {},
@@ -1648,10 +1648,8 @@ describe('AgentConfigurePage', () => {
         { searchParams: '?mode=preview' },
       )
 
-      expect(screen.getByRole('button', { name: 'preview mode' })).toBeDisabled()
-      expect(screen.getByRole('region', { name: 'build-chat' })).toHaveTextContent(
-        'build:debug-conversation-old',
-      )
+      expect(screen.getByRole('button', { name: 'preview mode' })).toBeEnabled()
+      expect(screen.getByRole('region', { name: 'preview-chat' })).toHaveTextContent('preview:none')
     })
 
     it('should enable preview in enterprise edition regardless of license status', () => {
