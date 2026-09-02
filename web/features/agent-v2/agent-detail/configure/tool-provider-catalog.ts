@@ -215,6 +215,10 @@ export function getProviderCredentialVariant(
 ) {
   if (!providerCredentialType) return 'none' as const
 
+  if (provider.type === CollectionType.custom) {
+    return provider.is_team_authorization ? ('authorized' as const) : ('unauthorized' as const)
+  }
+
   if (tool.credentialVariant !== 'none') return tool.credentialVariant
 
   return tool.credentialId || provider.is_team_authorization

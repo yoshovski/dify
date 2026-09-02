@@ -481,6 +481,42 @@ describe('agent composer store conversions', () => {
     ])
   })
 
+  it('should preserve provider-managed credentials for custom API tools', () => {
+    const publishConfig = formStateToAgentSoulConfig({
+      formState: {
+        ...defaultAgentSoulConfigFormState,
+        tools: [
+          {
+            id: '519cf409-1ade-4391-80b5-bf2f48af839f',
+            kind: 'provider',
+            name: 'custom-search',
+            iconClassName: 'i-custom-public-other-default-tool-icon text-text-tertiary',
+            providerType: 'api',
+            credentialType: 'api-key',
+            credentialVariant: 'authorized',
+            actions: [
+              {
+                id: '519cf409-1ade-4391-80b5-bf2f48af839f:search',
+                name: 'Search',
+                toolName: 'search',
+                description: 'Search the custom API.',
+              },
+            ],
+          },
+        ],
+      },
+    })
+
+    expect(publishConfig.tools?.dify_tools).toEqual([
+      expect.objectContaining({
+        provider_id: '519cf409-1ade-4391-80b5-bf2f48af839f',
+        provider_type: 'api',
+        credential_type: 'api-key',
+        credential_ref: undefined,
+      }),
+    ])
+  })
+
   it('should preserve oauth2 credential references when saving tool config', () => {
     const baseConfig = {
       tools: {
