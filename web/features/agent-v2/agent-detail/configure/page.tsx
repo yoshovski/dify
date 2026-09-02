@@ -1,12 +1,10 @@
 'use client'
 
 import type { AgentConfigureRightPanelMode } from './state'
-import { useSuspenseQuery } from '@tanstack/react-query'
 import { useAtomValue, useSetAtom } from 'jotai'
 import { ScopeProvider } from 'jotai-scope'
 import { parseAsStringLiteral, useQueryState } from 'nuqs'
 import { useCallback } from 'react'
-import { systemFeaturesQueryOptions } from '@/features/system-features/client'
 import { AgentConfigureComposerScope } from './components/composer-session'
 import { useAgentConfigureData } from './hooks'
 import {
@@ -41,12 +39,9 @@ function AgentConfigurePageContent({ agentId }: AgentConfigurePageProps) {
   const rebaseComposer = useSetAtom(rebaseAgentConfigureComposerAtom)
   const selectVersion = useSetAtom(agentConfigureSelectVersionAtom)
   const configureData = useAgentConfigureData(agentId, selectedVersionId)
-  const { data: deploymentEdition } = useSuspenseQuery({
-    ...systemFeaturesQueryOptions(),
-    select: (systemFeatures) => systemFeatures.deployment_edition,
-  })
   const { canBuild, canTestAndRun } = configureData.capabilities
-  const previewEnabled = canTestAndRun && deploymentEdition !== 'COMMUNITY'
+  // internal build: preview is available in the community edition too
+  const previewEnabled = canTestAndRun
   const rightPanelMode =
     !canBuild || (requestedMode === 'preview' && previewEnabled) ? 'preview' : 'build'
   const changeRightPanelMode = useCallback(

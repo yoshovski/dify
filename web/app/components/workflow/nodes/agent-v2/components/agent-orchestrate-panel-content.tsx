@@ -71,7 +71,6 @@ import {
   useInlineAgentScope,
 } from '@/features/agent-v2/analytics'
 import { useCanCreateAgents } from '@/features/agent-v2/permissions'
-import { systemFeaturesQueryOptions } from '@/features/system-features/client'
 import { consoleQuery } from '@/service/console'
 import { FlowType } from '@/types/common'
 import { useWorkflowInlineAgentConfigureSync } from '../agent-soul-config'
@@ -303,7 +302,6 @@ function WorkflowInlineAgentConfigureWorkspaceContent({
   const queryClient = useQueryClient()
   const jotaiStore = useJotaiStore()
   const setBuildDraftSoulSourceOverride = buildDraft.setSoulSourceOverride
-  const { data: systemFeatures } = useQuery(systemFeaturesQueryOptions())
   const composerState = inlineComposerState
   const [clearPreviewChat, setClearPreviewChat] = useState(false)
   const [completedBuildConversationId, setCompletedBuildConversationId] = useState<string | null>(
@@ -313,7 +311,8 @@ function WorkflowInlineAgentConfigureWorkspaceContent({
   const appId = flowType === FlowType.appFlow ? flowId : undefined
   const conversationIds = useAtomValue(agentConfigureConversationIdsAtom)
   const [rightPanelMode, setRightPanelMode] = useAtom(agentConfigureRightPanelModeAtom)
-  const previewEnabled = systemFeatures?.deployment_edition !== 'COMMUNITY'
+  // internal build: preview is available in the community edition too
+  const previewEnabled = true
   const workingDirectoryPanel = useAgentWorkingDirectoryPanel({
     type: 'agent',
     agentId,
