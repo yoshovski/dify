@@ -28,6 +28,7 @@ import { useInvalidateInstalledPluginList } from '@/service/use-plugins'
 import { useInvalidateAllBuiltInTools } from '@/service/use-tools'
 import { getIconFromMarketPlace } from '@/utils/get-icon'
 import {
+  getAgentProviderCredentialId,
   getAgentProviderPluginId,
   getAgentProviderToolDisplayName,
   getLocalizedText,
@@ -293,25 +294,22 @@ function AddToolMenu({
   }, [])
 
   const toAgentToolDefaultValue = useCallback(
-    (tool: ToolDefaultValue): AgentProviderToolDefaultValue => ({
-      ...tool,
-      provider_type: parseToolProviderType(tool.provider_type),
-      allowDelete: (
+    (tool: ToolDefaultValue): AgentProviderToolDefaultValue => {
+      const provider =
         providerById.get(tool.provider_id) ??
         providerById.get(tool.provider_name) ??
         (tool.plugin_id ? providerById.get(tool.plugin_id) : undefined)
-      )?.allow_delete,
-      credentialType: getProviderCredentialType(
-        providerById.get(tool.provider_id) ??
-          providerById.get(tool.provider_name) ??
-          (tool.plugin_id ? providerById.get(tool.plugin_id) : undefined),
-      ),
-      credentialRequired: !!getProviderCredentialType(
-        providerById.get(tool.provider_id) ??
-          providerById.get(tool.provider_name) ??
-          (tool.plugin_id ? providerById.get(tool.plugin_id) : undefined),
-      ),
-    }),
+      const credentialType = getProviderCredentialType(provider)
+
+      return {
+        ...tool,
+        provider_type: parseToolProviderType(tool.provider_type),
+        credential_id: getAgentProviderCredentialId(tool, provider, credentialType),
+        allowDelete: provider?.allow_delete,
+        credentialType,
+        credentialRequired: !!credentialType,
+      }
+    },
     [providerById],
   )
 

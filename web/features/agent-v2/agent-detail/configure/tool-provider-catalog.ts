@@ -1,6 +1,7 @@
 'use client'
 
 import type { MarketplacePlugin } from '@dify/contracts/marketplace'
+import type { ToolDefaultValue } from '@/app/components/workflow/block-selector/types'
 import type { ToolWithProvider } from '@/app/components/workflow/types'
 import type { AgentProviderTool, AgentTool } from '@/features/agent-v2/agent-composer/form-state'
 import { useMemo } from 'react'
@@ -204,6 +205,19 @@ export function getProviderCredentialType(
   if (Object.keys(provider.team_credentials ?? {}).length > 0) return 'api-key'
 
   if (provider.type === CollectionType.builtIn && provider.allow_delete) return 'oauth2'
+
+  return undefined
+}
+
+/** API tool credentials are stored on the provider itself, not each tool. */
+export function getAgentProviderCredentialId(
+  tool: Pick<ToolDefaultValue, 'credential_id'> & { provider_id: string },
+  provider?: ToolWithProvider,
+  credentialType?: AgentProviderTool['credentialType'],
+) {
+  if (tool.credential_id) return tool.credential_id
+
+  if (provider?.type === CollectionType.custom && credentialType === 'api-key') return provider.id
 
   return undefined
 }
