@@ -426,6 +426,17 @@ describe('EditCustomCollectionModal', () => {
       // The default auth type is 'none'
       expect(screen.getByText('tools.createTool.authMethod.types.none'))!.toBeInTheDocument()
     })
+
+    it('should show the authorization drawer when the auth method is clicked', async () => {
+      renderModal()
+
+      await act(async () => {
+        fireEvent.click(screen.getByText('tools.createTool.authMethod.types.none'))
+      })
+
+      expect(screen.getAllByText('tools.createTool.authMethod.title')).toHaveLength(2)
+      expect(screen.getByText('tools.createTool.authMethod.type')).toBeInTheDocument()
+    })
   })
 
   // Tests for Test API Modal
