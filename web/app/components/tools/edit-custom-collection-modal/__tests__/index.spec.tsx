@@ -433,6 +433,8 @@ describe('EditCustomCollectionModal', () => {
         fireEvent.click(screen.getByText('tools.createTool.authMethod.types.none'))
       })
 
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(document.querySelector('[data-nested-drawer-open]')).toBeInTheDocument()
       expect(screen.getAllByText('tools.createTool.authMethod.title')).toHaveLength(2)
       expect(screen.getByText('tools.createTool.authMethod.type')).toBeInTheDocument()
     })

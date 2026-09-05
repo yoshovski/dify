@@ -30,12 +30,13 @@ import ConfigCredentials from './config-credentials'
 
 type Props = Readonly<{
   positionCenter?: boolean
+  nested?: boolean
   customCollection: CustomCollectionBackend
   tool: CustomParamSchema
   onHide: () => void
 }>
 
-const TestApi: FC<Props> = ({ positionCenter, customCollection, tool, onHide }) => {
+const TestApi: FC<Props> = ({ positionCenter, nested = false, customCollection, tool, onHide }) => {
   const { t } = useTranslation()
   const locale = useLocale()
   const language = getLanguage(locale)
@@ -71,7 +72,6 @@ const TestApi: FC<Props> = ({ positionCenter, customCollection, tool, onHide }) 
   }
 
   return (
-    <>
       <Drawer
         open
         modal
@@ -82,7 +82,7 @@ const TestApi: FC<Props> = ({ positionCenter, customCollection, tool, onHide }) 
         }}
       >
         <DrawerPortal>
-          <DrawerBackdrop forceRender />
+          {!nested && <DrawerBackdrop forceRender />}
           <DrawerViewport>
             <DrawerPopup
               className={cn(
@@ -194,16 +194,16 @@ const TestApi: FC<Props> = ({ positionCenter, customCollection, tool, onHide }) 
             </DrawerPopup>
           </DrawerViewport>
         </DrawerPortal>
+        {credentialsModalShow && (
+          <ConfigCredentials
+            nested
+            positionCenter={positionCenter}
+            credential={tempCredential}
+            onChange={setTempCredential}
+            onHide={() => setCredentialsModalShow(false)}
+          />
+        )}
       </Drawer>
-      {credentialsModalShow && (
-        <ConfigCredentials
-          positionCenter={positionCenter}
-          credential={tempCredential}
-          onChange={setTempCredential}
-          onHide={() => setCredentialsModalShow(false)}
-        />
-      )}
-    </>
   )
 }
 export default React.memo(TestApi)

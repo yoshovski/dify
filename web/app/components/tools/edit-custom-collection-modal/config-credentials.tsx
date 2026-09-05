@@ -30,6 +30,7 @@ import { AuthHeaderPrefix, AuthType } from '@/app/components/tools/types'
 
 type Props = Readonly<{
   positionCenter?: boolean
+  nested?: boolean
   credential: Credential
   onChange: (credential: Credential) => void
   onHide: () => void
@@ -59,7 +60,13 @@ function SelectItem<Value = string>({ text, value, isChecked }: ItemProps<Value>
   )
 }
 
-export default function ConfigCredential({ positionCenter, credential, onChange, onHide }: Props) {
+export default function ConfigCredential({
+  positionCenter,
+  nested = false,
+  credential,
+  onChange,
+  onHide,
+}: Props) {
   const { t } = useTranslation()
   const apiKeyHeaderInputId = useId()
   const apiKeyHeaderValueInputId = useId()
@@ -100,7 +107,7 @@ export default function ConfigCredential({ positionCenter, credential, onChange,
       }}
     >
       <DrawerPortal>
-        <DrawerBackdrop forceRender />
+        {!nested && <DrawerBackdrop forceRender />}
         <DrawerViewport>
           <DrawerPopup
             className={cn(

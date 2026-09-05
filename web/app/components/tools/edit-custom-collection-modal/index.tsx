@@ -488,23 +488,25 @@ const EditCustomCollectionModal: FC<Props> = ({
             </DrawerPopup>
           </DrawerViewport>
         </DrawerPortal>
+        {credentialsModalShow && (
+          <ConfigCredentials
+            nested
+            positionCenter={isAdd}
+            credential={credential}
+            onChange={setCredential}
+            onHide={() => setCredentialsModalShow(false)}
+          />
+        )}
+        {isShowTestApi && (
+          <TestApi
+            nested
+            positionCenter={isAdd}
+            tool={currTool as CustomParamSchema}
+            customCollection={customCollection}
+            onHide={() => setIsShowTestApi(false)}
+          />
+        )}
       </Drawer>
-      {credentialsModalShow && (
-        <ConfigCredentials
-          positionCenter={isAdd}
-          credential={credential}
-          onChange={setCredential}
-          onHide={() => setCredentialsModalShow(false)}
-        />
-      )}
-      {isShowTestApi && (
-        <TestApi
-          positionCenter={isAdd}
-          tool={currTool as CustomParamSchema}
-          customCollection={customCollection}
-          onHide={() => setIsShowTestApi(false)}
-        />
-      )}
     </>
   )
 }

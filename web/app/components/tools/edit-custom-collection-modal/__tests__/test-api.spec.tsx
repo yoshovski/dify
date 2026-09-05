@@ -219,6 +219,16 @@ describe('TestApi', () => {
         screen.getByText('tools.createTool.authMethod.types.api_key_header'),
       )!.toBeInTheDocument()
     })
+
+    it('should register the credentials drawer as nested', async () => {
+      renderTestApi()
+
+      fireEvent.click(screen.getByText('tools.createTool.authMethod.types.none'))
+
+      expect(screen.getByRole('dialog')).toBeInTheDocument()
+      expect(document.querySelector('[data-nested-drawer-open]')).toBeInTheDocument()
+      expect(screen.getByText('tools.createTool.authMethod.type')).toBeInTheDocument()
+    })
   })
 
   // Tests for multiple parameters
