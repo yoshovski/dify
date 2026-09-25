@@ -23,11 +23,9 @@ def test_internal_features_remain_unlocked_without_vector_space(config_overrides
     features = FeatureService.get_features("workspace", exclude_vector_space=True)
 
     assert features.vector_space is None
-    assert features.billing.enabled is False
     assert features.billing.subscription.plan == "professional"
     assert features.can_replace_logo is True
     assert features.model_load_balancing_enabled is True
-    assert features.dataset_operator_enabled is True
     assert features.knowledge_pipeline.publish_enabled is True
     assert features.trigger_event.limit == 999999999
     assert features.api_rate_limit.limit == 999999999

@@ -41,12 +41,12 @@ class FeatureService:
         )
 
         # Force unlock features
-        features.billing.enabled = False
+        # (1.17.1 removed BillingModel.enabled upstream; billing UI is driven by DEPLOYMENT_EDITION now)
         features.billing.subscription.plan = "professional"
         features.billing.subscription.interval = "year"
         features.can_replace_logo = True
         features.model_load_balancing_enabled = True
-        features.dataset_operator_enabled = True
+        # dataset_operator_enabled was removed from FeatureModel in 1.17.1 (now DATASET_OPERATOR_ENABLED config)
         features.webapp_copyright_enabled = True
         features.knowledge_pipeline.publish_enabled = True
         features.is_allow_transfer_workspace = True
