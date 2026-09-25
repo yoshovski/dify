@@ -440,7 +440,10 @@ class TestPluginDebuggingKeyApi:
             ),
         ):
             result = method(api, "t1")
-            assert result == ({"code": "plugin_error", "message": "error"}, 400)
+            assert result == (
+                {"code": "plugin_error", "message": "Plugin debugging is unavailable on this deployment."},
+                400,
+            )
 
 
 class TestPluginListApi:
