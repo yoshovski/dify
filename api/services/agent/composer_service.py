@@ -1385,6 +1385,14 @@ class AgentComposerService:
                 agent.active_config_has_model = agent_soul_has_model(payload.agent_soul)
                 agent.active_config_is_published = True
                 agent.updated_by = account_id
+                # Freeze the agent's workspace Skill bindings into the new snapshot, as the other
+                # save paths do; publish validation and the runtime read skills from the snapshot.
+                SkillManagementService(session=session).publish_agent_bindings(
+                    tenant_id=tenant_id,
+                    agent_id=agent.id,
+                    snapshot_id=version.id,
+                    user_id=account_id,
+                )
                 binding.current_snapshot_id = version.id
                 normal_draft = cls._get_agent_draft(
                     session=session,

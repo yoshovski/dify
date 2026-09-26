@@ -2529,6 +2529,11 @@ def test_node_job_only_updates_inline_agent_soul(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(AgentComposerService, "_update_current_version", lambda **kwargs: next_snapshot)
     monkeypatch.setattr(AgentComposerService, "_require_agent", lambda **kwargs: inline_agent)
     monkeypatch.setattr(AgentComposerService, "_get_agent_draft", lambda **kwargs: normal_draft)
+    published_skill_bindings: list[dict[str, str]] = []
+    monkeypatch.setattr(
+        "services.agent.composer_service.SkillManagementService.publish_agent_bindings",
+        lambda self, **kwargs: published_skill_bindings.append(kwargs),
+    )
 
     binding = WorkflowAgentNodeBinding(
         tenant_id="tenant-1",
@@ -2578,6 +2583,14 @@ def test_node_job_only_updates_inline_agent_soul(monkeypatch: pytest.MonkeyPatch
     assert normal_draft.home_snapshot_id == "home-inline-2"
     assert normal_draft.config_snapshot_dict == next_snapshot.config_snapshot_dict
     assert normal_draft.updated_by == "account-1"
+    assert published_skill_bindings == [
+        {
+            "tenant_id": "tenant-1",
+            "agent_id": "inline-agent-1",
+            "snapshot_id": "inline-version-2",
+            "user_id": "account-1",
+        }
+    ]
 
 
 def test_get_or_create_normal_agent_draft_rebases_stale_workflow_only_draft(sqlite_session: Session):
