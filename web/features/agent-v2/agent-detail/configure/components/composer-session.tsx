@@ -558,8 +558,8 @@ function AgentConfigurePageComposerContent({
                 agentId={agentId}
                 answerActionPosition="below"
                 agentIcon={
-                  agentIconType === 'image' || agentIconType === 'link'
-                    ? agentQuery.data?.icon_url
+                  agentIconType === 'image'
+                    ? (agentQuery.data?.icon_url ?? agentQuery.data?.icon)
                     : agentQuery.data?.icon
                 }
                 agentIconBackground={agentQuery.data?.icon_background}
