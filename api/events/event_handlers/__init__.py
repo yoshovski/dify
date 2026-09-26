@@ -26,6 +26,9 @@ from .update_app_triggers_when_app_published_workflow_updated import (
 # Consolidated handler replaces both deduct_quota_when_message_created and
 # update_provider_last_used_at_when_message_created
 from .update_provider_when_message_created import handle as handle_update_provider_when_message_created
+from .update_workflow_tool_when_app_published_workflow_updated import (
+    handle as handle_update_workflow_tool_when_app_published_workflow_updated,
+)
 
 __all__ = [
     "handle_clean_when_dataset_deleted",
@@ -43,4 +46,5 @@ __all__ = [
     "handle_update_app_dataset_join_when_app_published_workflow_updated",
     "handle_update_app_triggers_when_app_published_workflow_updated",
     "handle_update_provider_when_message_created",
+    "handle_update_workflow_tool_when_app_published_workflow_updated",
 ]
