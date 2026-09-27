@@ -13,6 +13,13 @@ vi.mock('@/next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
+// Exercise the embedded (cloud.dify.ai) detail frame; the self-hosted new-tab path is
+// covered in detail-dialog/__tests__/index.spec.tsx.
+vi.mock('../../detail-dialog/embed', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../detail-dialog/embed')>()),
+  canEmbedMarketplace: () => true,
+}))
+
 vi.mock('../../utils', () => ({
   getTemplateLinkInMarketplace: (
     currentTemplate: MarketplaceTemplate,

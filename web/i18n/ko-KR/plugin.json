@@ -224,6 +224,8 @@
   "marketplace.creatorProfile.title": "크리에이터 프로필",
   "marketplace.creatorProfile.type.plugin": "플러그인",
   "marketplace.creatorProfile.type.template": "템플릿",
+  "marketplace.detailDialog.embedBlocked": "The Dify Marketplace can only be embedded in Dify Cloud. Open it in a new tab to view or install this item; installing there brings you back here.",
+  "marketplace.detailDialog.openInNewTab": "Open in Marketplace",
   "marketplace.difyMarketplace": "Dify 마켓플레이스",
   "marketplace.discover": "발견하다",
   "marketplace.empower": "AI 개발 역량 강화",

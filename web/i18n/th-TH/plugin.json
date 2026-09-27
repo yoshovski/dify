@@ -224,6 +224,8 @@
   "marketplace.creatorProfile.title": "โปรไฟล์ครีเอเตอร์",
   "marketplace.creatorProfile.type.plugin": "ปลั๊กอิน",
   "marketplace.creatorProfile.type.template": "เทมเพลต",
+  "marketplace.detailDialog.embedBlocked": "The Dify Marketplace can only be embedded in Dify Cloud. Open it in a new tab to view or install this item; installing there brings you back here.",
+  "marketplace.detailDialog.openInNewTab": "Open in Marketplace",
   "marketplace.difyMarketplace": "ตลาด Dify",
   "marketplace.discover": "ค้นพบ",
   "marketplace.empower": "เพิ่มศักยภาพในการพัฒนา AI ของคุณ",

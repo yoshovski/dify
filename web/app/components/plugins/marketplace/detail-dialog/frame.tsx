@@ -12,6 +12,7 @@ import {
 import { IconButton } from '@langgenius/dify-ui/icon-button'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from '#i18n'
+import { canEmbedMarketplace, getStandaloneMarketplaceUrl } from './embed'
 
 type ReplyToMarketplaceFrame = (data: unknown) => void
 
@@ -39,6 +40,16 @@ export default function MarketplaceDetailDialogFrame({
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [embedBlocked] = useState(() => !canEmbedMarketplace())
+
+  useEffect(() => {
+    if (!open || !embedBlocked) return
+
+    // Still inside the click's user activation in most browsers; if the popup is
+    // blocked, the dialog stays open and offers a link instead.
+    const tab = window.open(getStandaloneMarketplaceUrl(src), '_blank', 'noopener,noreferrer')
+    if (tab !== null) onOpenChange(false)
+  }, [embedBlocked, onOpenChange, open, src])
 
   useEffect(() => {
     if (!open) return
@@ -63,6 +74,45 @@ export default function MarketplaceDetailDialogFrame({
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
   }, [onMessage, open, src])
+
+  if (embedBlocked) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogPortal>
+          <DialogBackdrop />
+          <DialogPopup className="fixed top-1/2 left-1/2 w-[min(440px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 p-6 shadow-xl">
+            <DialogTitle className="pr-8 title-md-semi-bold text-text-primary">{title}</DialogTitle>
+            <p className="mt-2 body-md-regular text-text-tertiary">
+              {t(($) => $['marketplace.detailDialog.embedBlocked'], { ns: 'plugin' })}
+            </p>
+            <div className="mt-6 flex justify-end">
+              <a
+                href={open ? getStandaloneMarketplaceUrl(src) : undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-8 items-center gap-1 rounded-lg bg-components-button-primary-bg px-3 system-sm-medium text-components-button-primary-text hover:bg-components-button-primary-bg-hover"
+                onClick={() => onOpenChange(false)}
+              >
+                {t(($) => $['marketplace.detailDialog.openInNewTab'], { ns: 'plugin' })}
+                <span aria-hidden className="i-ri-external-link-line size-4" />
+              </a>
+            </div>
+            <DialogClose
+              render={
+                <IconButton
+                  aria-label={t(($) => $['operation.close'], { ns: 'common' })}
+                  size="sm"
+                  className="absolute top-4 right-4 size-8 rounded-lg"
+                >
+                  <span aria-hidden className="i-ri-close-line size-4" />
+                </IconButton>
+              }
+            />
+          </DialogPopup>
+        </DialogPortal>
+      </Dialog>
+    )
+  }
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) setIsLoading(true)

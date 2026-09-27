@@ -224,6 +224,8 @@
   "marketplace.creatorProfile.title": "Profil du créateur",
   "marketplace.creatorProfile.type.plugin": "Plugin",
   "marketplace.creatorProfile.type.template": "Modèle",
+  "marketplace.detailDialog.embedBlocked": "The Dify Marketplace can only be embedded in Dify Cloud. Open it in a new tab to view or install this item; installing there brings you back here.",
+  "marketplace.detailDialog.openInNewTab": "Open in Marketplace",
   "marketplace.difyMarketplace": "Marché Dify",
   "marketplace.discover": "Découvrir",
   "marketplace.empower": "Renforcez le développement de votre IA",

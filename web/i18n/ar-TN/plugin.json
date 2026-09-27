@@ -224,6 +224,8 @@
   "marketplace.creatorProfile.title": "ملف المنشئ",
   "marketplace.creatorProfile.type.plugin": "إضافة",
   "marketplace.creatorProfile.type.template": "قالب",
+  "marketplace.detailDialog.embedBlocked": "The Dify Marketplace can only be embedded in Dify Cloud. Open it in a new tab to view or install this item; installing there brings you back here.",
+  "marketplace.detailDialog.openInNewTab": "Open in Marketplace",
   "marketplace.difyMarketplace": "سوق Dify",
   "marketplace.discover": "اكتشف",
   "marketplace.empower": "تمكين تطوير الذكاء الاصطناعي الخاص بك",

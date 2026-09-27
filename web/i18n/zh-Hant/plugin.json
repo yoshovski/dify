@@ -224,6 +224,8 @@
   "marketplace.creatorProfile.title": "創作者主頁",
   "marketplace.creatorProfile.type.plugin": "外掛",
   "marketplace.creatorProfile.type.template": "模板",
+  "marketplace.detailDialog.embedBlocked": "The Dify Marketplace can only be embedded in Dify Cloud. Open it in a new tab to view or install this item; installing there brings you back here.",
+  "marketplace.detailDialog.openInNewTab": "Open in Marketplace",
   "marketplace.difyMarketplace": "Dify Marketplace",
   "marketplace.discover": "發現",
   "marketplace.empower": "為您的 AI 開發提供支援",

@@ -9,6 +9,12 @@ import MarketplaceDetailDialog from '../index'
 
 const mocks = vi.hoisted(() => ({
   install: vi.fn(),
+  canEmbed: vi.fn(() => true),
+}))
+
+vi.mock('../embed', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../embed')>()),
+  canEmbedMarketplace: mocks.canEmbed,
 }))
 
 vi.mock('../../utils', () => ({
@@ -58,6 +64,55 @@ describe('MarketplaceDetailDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.install.mockResolvedValue({ status: 'success' })
+    mocks.canEmbed.mockReturnValue(true)
+  })
+
+  describe('when the marketplace cannot be embedded (self-hosted origin)', () => {
+    beforeEach(() => {
+      mocks.canEmbed.mockReturnValue(false)
+    })
+
+    it('opens the standalone marketplace page in a new tab and closes', () => {
+      const open = vi.spyOn(window, 'open').mockReturnValue({} as Window)
+      const onOpenChange = vi.fn()
+
+      render(
+        <ThemeProvider forcedTheme="dark">
+          <MarketplaceDetailDialog open isInstalled plugin={plugin} onOpenChange={onOpenChange} />
+        </ThemeProvider>,
+      )
+
+      expect(open).toHaveBeenCalledTimes(1)
+      const [url, target, features] = open.mock.calls[0]!
+      expect(String(url)).toContain('plugin=dify%2Fplugin-a')
+      expect(String(url)).not.toContain('view=modal')
+      expect(target).toBe('_blank')
+      expect(features).toBe('noopener,noreferrer')
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+      expect(document.querySelector('iframe')).not.toBeInTheDocument()
+    })
+
+    it('offers a link instead of an empty frame when the popup is blocked', async () => {
+      vi.spyOn(window, 'open').mockReturnValue(null)
+      const onOpenChange = vi.fn()
+
+      render(
+        <ThemeProvider forcedTheme="dark">
+          <MarketplaceDetailDialog open isInstalled plugin={plugin} onOpenChange={onOpenChange} />
+        </ThemeProvider>,
+      )
+
+      expect(onOpenChange).not.toHaveBeenCalled()
+      expect(document.querySelector('iframe')).not.toBeInTheDocument()
+      const link = screen.getByRole('link', {
+        name: /plugin\.marketplace\.detailDialog\.openInNewTab/,
+      })
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link.getAttribute('href')).not.toContain('view=modal')
+
+      await userEvent.setup().click(link)
+      expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
   })
 
   it('renders the marketplace detail route in modal mode and closes in place', async () => {
