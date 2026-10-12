@@ -139,8 +139,9 @@ vi.mock('@/context/dataset-detail', () => ({
 }))
 
 // Mock services
-vi.mock('@/service/datasets', () => ({
-  updateDatasetSetting: vi.fn().mockResolvedValue({}),
+vi.mock('@/service/console', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/service/console')>()),
+  consoleClient: { datasets: { byDatasetId: { patch: vi.fn().mockResolvedValue({}) } } },
 }))
 
 vi.mock('@/service/knowledge/use-dataset', () => ({
@@ -520,7 +521,8 @@ describe('useFormState', () => {
     })
 
     it('should call updateDatasetSetting with correct params', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       const { result } = renderHook(() => useFormState())
 
       await act(async () => {
@@ -528,7 +530,7 @@ describe('useFormState', () => {
       })
 
       expect(updateDatasetSetting).toHaveBeenCalledWith({
-        datasetId: 'dataset-1',
+        params: { dataset_id: 'dataset-1' },
         body: expect.objectContaining({
           name: 'Test Dataset',
           description: 'Test description',
@@ -538,7 +540,8 @@ describe('useFormState', () => {
     })
 
     it('should not save when dataset only has readonly ACL permission', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       mockDataset = {
         ...createDefaultMockDataset(),
         permission_keys: [DatasetACLPermission.Readonly],
@@ -605,7 +608,8 @@ describe('useFormState', () => {
     })
 
     it('should not save when already loading', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       vi.mocked(updateDatasetSetting).mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 100)),
       )
@@ -627,7 +631,8 @@ describe('useFormState', () => {
     })
 
     it('should show error toast on save failure', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       const { toast } = await import('@langgenius/dify-ui/toast')
       vi.mocked(updateDatasetSetting).mockRejectedValueOnce(new Error('Network error'))
 
@@ -641,7 +646,8 @@ describe('useFormState', () => {
     })
 
     it('should include partial_member_list when permission is partialMembers', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       const { result } = renderHook(() => useFormState())
 
       act(() => {
@@ -654,7 +660,7 @@ describe('useFormState', () => {
       })
 
       expect(updateDatasetSetting).toHaveBeenCalledWith({
-        datasetId: 'dataset-1',
+        params: { dataset_id: 'dataset-1' },
         body: expect.objectContaining({
           partial_member_list: expect.arrayContaining([
             expect.objectContaining({ user_id: 'user-1' }),
@@ -716,7 +722,8 @@ describe('useFormState', () => {
     })
 
     it('should include weights in save request when weights are set', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       const { result } = renderHook(() => useFormState())
 
       // Set retrieval config with weights
@@ -746,7 +753,7 @@ describe('useFormState', () => {
 
       // Verify that weights were included and embedding model info was added
       expect(updateDatasetSetting).toHaveBeenCalledWith({
-        datasetId: 'dataset-1',
+        params: { dataset_id: 'dataset-1' },
         body: expect.objectContaining({
           retrieval_model: expect.objectContaining({
             weights: expect.objectContaining({
@@ -782,7 +789,8 @@ describe('useFormState', () => {
     })
 
     it('should include external knowledge info in save request for external provider', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       const { result } = renderHook(() => useFormState())
 
       await act(async () => {
@@ -790,7 +798,7 @@ describe('useFormState', () => {
       })
 
       expect(updateDatasetSetting).toHaveBeenCalledWith({
-        datasetId: 'dataset-1',
+        params: { dataset_id: 'dataset-1' },
         body: expect.objectContaining({
           external_knowledge_id: 'ext-123',
           external_knowledge_api_id: 'api-456',
@@ -804,7 +812,8 @@ describe('useFormState', () => {
     })
 
     it('should use correct external retrieval settings', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       const { result } = renderHook(() => useFormState())
 
       // Update external retrieval settings
@@ -821,7 +830,7 @@ describe('useFormState', () => {
       })
 
       expect(updateDatasetSetting).toHaveBeenCalledWith({
-        datasetId: 'dataset-1',
+        params: { dataset_id: 'dataset-1' },
         body: expect.objectContaining({
           external_retrieval_model: {
             top_k: 10,

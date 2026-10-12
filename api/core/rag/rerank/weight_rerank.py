@@ -9,6 +9,7 @@ from core.model_context import with_credit_usage_created_by
 from core.model_manager import ModelManager
 from core.rag.datasource.keyword.jieba.jieba_keyword_table_handler import JiebaKeywordTableHandler
 from core.rag.embedding.cached_embedding import CacheEmbedding
+from core.rag.embedding.embedding_base import Embeddings
 from core.rag.index_processor.constant.doc_type import DocType
 from core.rag.index_processor.constant.query_type import QueryType
 from core.rag.models.document import Document
@@ -18,9 +19,10 @@ from graphon.model_runtime.entities.model_entities import ModelType
 
 
 class WeightRerankRunner(BaseRerankRunner):
-    def __init__(self, tenant_id: str, weights: Weights):
+    def __init__(self, tenant_id: str, weights: Weights, query_embedding: Embeddings | None = None):
         self.tenant_id = tenant_id
         self.weights = weights
+        self.query_embedding = query_embedding
 
     @override
     def run(
@@ -166,15 +168,16 @@ class WeightRerankRunner(BaseRerankRunner):
         """
         query_vector_scores = []
 
-        model_manager = ModelManager.for_tenant(tenant_id=tenant_id)
-
-        embedding_model = model_manager.get_model_instance(
-            tenant_id=tenant_id,
-            provider=vector_setting.embedding_provider_name,
-            model_type=ModelType.TEXT_EMBEDDING,
-            model=vector_setting.embedding_model_name,
-        )
-        cache_embedding = CacheEmbedding(embedding_model)
+        cache_embedding = self.query_embedding
+        if cache_embedding is None:
+            model_manager = ModelManager.for_tenant(tenant_id=tenant_id)
+            embedding_model = model_manager.get_model_instance(
+                tenant_id=tenant_id,
+                provider=vector_setting.embedding_provider_name,
+                model_type=ModelType.TEXT_EMBEDDING,
+                model=vector_setting.embedding_model_name,
+            )
+            cache_embedding = CacheEmbedding(embedding_model)
         query_vector = cache_embedding.embed_query(query)
         for document in documents:
             # calculate cosine similarity

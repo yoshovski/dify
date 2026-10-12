@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import Field, field_validator
 from sqlalchemy.orm import Session
 
+from core.rag.embedding.query_model import approved_profiles
 from fields.base import ResponseModel
 from libs.helper import to_timestamp
 
@@ -130,6 +131,15 @@ class DatasetIconInfoResponse(ResponseModel):
     icon_url: str | None = None
 
 
+class VoyageQueryEmbeddingOptionResponse(ResponseModel):
+    tenant_id: str
+    provider: str
+    document_model: str
+    query_model: str
+    dimensions: Literal[256, 512, 1024, 2048]
+    encoding: Literal["float"]
+
+
 class DatasetDetailResponse(ResponseModel):
     id: str
     name: str
@@ -148,6 +158,9 @@ class DatasetDetailResponse(ResponseModel):
     updated_at: int
     embedding_model: str | None
     embedding_model_provider: str | None
+    query_embedding_model: str | None = None
+    query_embedding_model_provider: str | None = None
+    query_embedding_options: list[VoyageQueryEmbeddingOptionResponse] = Field(default_factory=list)
     embedding_available: bool | None = None
     retrieval_model_dict: DatasetRetrievalModelResponse = Field(
         description="Retrieval configuration for the knowledge base."
@@ -200,6 +213,13 @@ class DatasetDetailResponseSource:
 
     dataset: Any
     session: Session
+
+    @property
+    def query_embedding_options(self) -> list[VoyageQueryEmbeddingOptionResponse]:
+        return [
+            VoyageQueryEmbeddingOptionResponse.model_validate(p, from_attributes=True)
+            for p in approved_profiles(self.dataset.tenant_id)
+        ]
 
     @property
     def app_count(self) -> int:

@@ -550,6 +550,8 @@ export type DatasetCreatePayload = {
   name: string
   permission?: PermissionEnum | null
   provider?: 'external' | 'vendor'
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
   retrieval_model?: RetrievalModel | null
   summary_index_setting?: {
     enable?: boolean
@@ -587,6 +589,9 @@ export type DatasetDetailResponse = {
   permission: string
   pipeline_id: string | null
   provider: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
+  query_embedding_options?: Array<VoyageQueryEmbeddingOptionResponse>
   retrieval_model_dict: DatasetRetrievalModelResponse
   runtime_mode: string | null
   summary_index_setting?: DatasetSummaryIndexSettingResponse
@@ -627,6 +632,9 @@ export type DatasetDetailWithPartialMembersResponse = {
   permission: string
   pipeline_id: string | null
   provider: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
+  query_embedding_options?: Array<VoyageQueryEmbeddingOptionResponse>
   retrieval_model_dict: DatasetRetrievalModelResponse
   runtime_mode: string | null
   summary_index_setting?: DatasetSummaryIndexSettingResponse
@@ -761,6 +769,8 @@ export type DatasetUpdatePayload = {
     user_id?: string
   }> | null
   permission?: PermissionEnum | null
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
   retrieval_model?: RetrievalModel | null
 }
 
@@ -2119,6 +2129,15 @@ export type UserActionConfig = {
 }
 
 export type ValueSourceType = 'constant' | 'variable'
+
+export type VoyageQueryEmbeddingOptionResponse = {
+  dimensions: 256 | 512 | 1024 | 2048
+  document_model: string
+  encoding: 'float'
+  provider: string
+  query_model: string
+  tenant_id: string
+}
 
 export type WeightKeywordSetting = {
   keyword_weight: number

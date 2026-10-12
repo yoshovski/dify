@@ -309,12 +309,16 @@ export const zPermissionEnum = z.enum(['all_team_members', 'only_me', 'partial_m
  */
 export const zDatasetCreatePayload = z.object({
   description: z.string().max(400).optional().default(''),
+  embedding_model: z.string().nullish(),
+  embedding_model_provider: z.string().nullish(),
   external_knowledge_api_id: z.string().nullish(),
   external_knowledge_id: z.string().nullish(),
   indexing_technique: z.string().nullish(),
   name: z.string().min(1).max(40),
   permission: zPermissionEnum.nullish().default('only_me'),
   provider: z.string().optional().default('vendor'),
+  query_embedding_model: z.string().max(255).nullish(),
+  query_embedding_model_provider: z.string().max(255).nullish(),
 })
 
 /**
@@ -333,6 +337,8 @@ export const zDatasetUpdatePayload = z.object({
   name: z.string().min(1).max(40).nullish(),
   partial_member_list: z.array(z.record(z.string(), z.string())).nullish(),
   permission: zPermissionEnum.nullish(),
+  query_embedding_model: z.string().max(255).nullish(),
+  query_embedding_model_provider: z.string().max(255).nullish(),
   retrieval_model: z.record(z.string(), z.unknown()).nullish(),
   summary_index_setting: z.record(z.string(), z.unknown()).nullish(),
 })
@@ -373,6 +379,18 @@ export const zDatasetIconInfoResponse = z.object({
   icon_background: z.string().nullish(),
   icon_type: z.string().nullish(),
   icon_url: z.string().nullish(),
+})
+
+/**
+ * VoyageQueryEmbeddingOptionResponse
+ */
+export const zVoyageQueryEmbeddingOptionResponse = z.object({
+  dimensions: z.union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048)]),
+  document_model: z.string(),
+  encoding: z.literal('float'),
+  provider: z.string(),
+  query_model: z.string(),
+  tenant_id: z.string(),
 })
 
 /**
@@ -1056,6 +1074,9 @@ export const zDatasetDetailResponse = z.object({
   permission_keys: z.array(z.string()).optional(),
   pipeline_id: z.string().nullable(),
   provider: z.string(),
+  query_embedding_model: z.string().nullish(),
+  query_embedding_model_provider: z.string().nullish(),
+  query_embedding_options: z.array(zVoyageQueryEmbeddingOptionResponse).optional(),
   retrieval_model_dict: zDatasetRetrievalModelResponse,
   runtime_mode: z.string().nullable(),
   summary_index_setting: zDatasetSummaryIndexSettingResponse.optional(),
@@ -1100,6 +1121,9 @@ export const zDatasetDetailWithPartialMembersResponse = z.object({
   permission_keys: z.array(z.string()).optional(),
   pipeline_id: z.string().nullable(),
   provider: z.string(),
+  query_embedding_model: z.string().nullish(),
+  query_embedding_model_provider: z.string().nullish(),
+  query_embedding_options: z.array(zVoyageQueryEmbeddingOptionResponse).optional(),
   retrieval_model_dict: zDatasetRetrievalModelResponse,
   runtime_mode: z.string().nullable(),
   summary_index_setting: zDatasetSummaryIndexSettingResponse.optional(),
@@ -1144,6 +1168,9 @@ export const zDatasetListItemResponse = z.object({
   permission_keys: z.array(z.string()).optional(),
   pipeline_id: z.string().nullable(),
   provider: z.string(),
+  query_embedding_model: z.string().nullish(),
+  query_embedding_model_provider: z.string().nullish(),
+  query_embedding_options: z.array(zVoyageQueryEmbeddingOptionResponse).optional(),
   retrieval_model_dict: zDatasetRetrievalModelResponse,
   runtime_mode: z.string().nullable(),
   summary_index_setting: zDatasetSummaryIndexSettingResponse.optional(),

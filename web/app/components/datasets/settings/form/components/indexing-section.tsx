@@ -20,6 +20,7 @@ import { IndexingType } from '../../../create/step-two'
 import ChunkStructure from '../../chunk-structure'
 import IndexMethod from '../../index-method'
 import SummaryIndexSetting from '../../summary-index-setting'
+import QueryEmbeddingSection from './query-embedding-section'
 
 const rowClass = 'flex gap-x-1'
 const labelClass = 'flex items-center shrink-0 w-[180px] h-7 pt-1'
@@ -33,6 +34,10 @@ type IndexingSectionProps = {
   embeddingModel: DefaultModel
   setEmbeddingModel: (value: DefaultModel) => void
   embeddingModelList: ProviderWithModelsResponse[]
+  queryEmbeddingModel: DefaultModel | null
+  setQueryEmbeddingModel: (value: DefaultModel | null) => void
+  queryEmbeddingOptions: NonNullable<DataSet['query_embedding_options']>
+  queryEmbeddingValid: boolean
   retrievalConfig: RetrievalConfig
   setRetrievalConfig: (value: RetrievalConfig) => void
   summaryIndexSetting: SummaryIndexSettingType | undefined
@@ -50,6 +55,10 @@ const IndexingSection = ({
   embeddingModel,
   setEmbeddingModel,
   embeddingModelList,
+  queryEmbeddingModel,
+  setQueryEmbeddingModel,
+  queryEmbeddingOptions,
+  queryEmbeddingValid,
   retrievalConfig,
   setRetrievalConfig,
   summaryIndexSetting,
@@ -153,7 +162,7 @@ const IndexingSection = ({
         <div className={rowClass}>
           <div className="flex w-45 shrink-0 flex-col pt-1">
             <div className="system-sm-semibold text-text-secondary">
-              {t(($) => $['form.embeddingModel'], { ns: 'datasetSettings' })}
+              {t(($) => $['form.documentEmbeddingModel'], { ns: 'datasetSettings' })}
             </div>
             <MultimodalRetrievalGuidanceLearnMore />
           </div>
@@ -173,6 +182,18 @@ const IndexingSection = ({
           </div>
         </div>
       )}
+
+      <QueryEmbeddingSection
+        queryModel={queryEmbeddingModel}
+        onChange={setQueryEmbeddingModel}
+        options={queryEmbeddingOptions}
+        models={embeddingModelList}
+        valid={
+          queryEmbeddingValid && (!queryEmbeddingModel || indexMethod === IndexingType.QUALIFIED)
+        }
+        readonly={readonly}
+        enabled={indexMethod === IndexingType.QUALIFIED}
+      />
 
       {/* Summary Index Setting */}
       {showSummaryIndexSetting && (

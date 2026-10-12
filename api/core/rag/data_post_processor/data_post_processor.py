@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from core.model_manager import ModelInstance, ModelManager
 from core.rag.data_post_processor.reorder import ReorderRunner
+from core.rag.embedding.embedding_base import Embeddings
 from core.rag.index_processor.constant.query_type import QueryType
 from core.rag.models.document import Document
 from core.rag.rerank.entity.weight import KeywordSetting, VectorSetting, Weights
@@ -47,9 +48,15 @@ class DataPostProcessor:
         reorder_enabled: bool = False,
         *,
         session: Session,
+        query_embedding: Embeddings | None = None,
     ):
         self.rerank_runner = self._get_rerank_runner(
-            reranking_mode, tenant_id, reranking_model, weights, session=session
+            reranking_mode,
+            tenant_id,
+            reranking_model,
+            weights,
+            session=session,
+            **({"query_embedding": query_embedding} if query_embedding is not None else {}),
         )
         self.reorder_runner = self._get_reorder_runner(reorder_enabled)
 
@@ -78,11 +85,13 @@ class DataPostProcessor:
         weights: WeightsDict | None = None,
         *,
         session: Session,
+        query_embedding: Embeddings | None = None,
     ) -> BaseRerankRunner | None:
         if reranking_mode == RerankMode.WEIGHTED_SCORE and weights:
             runner = RerankRunnerFactory.create_rerank_runner(
                 runner_type=reranking_mode,
                 tenant_id=tenant_id,
+                **({"query_embedding": query_embedding} if query_embedding is not None else {}),
                 weights=Weights(
                     vector_setting=VectorSetting(
                         vector_weight=weights["vector_setting"]["vector_weight"],

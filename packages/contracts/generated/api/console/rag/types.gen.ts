@@ -59,6 +59,9 @@ export type DatasetDetailResponse = {
   permission_keys?: Array<string>
   pipeline_id: string | null
   provider: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
+  query_embedding_options?: Array<VoyageQueryEmbeddingOptionResponse>
   retrieval_model_dict: DatasetRetrievalModelResponse
   runtime_mode: string | null
   summary_index_setting?: DatasetSummaryIndexSettingResponse
@@ -334,6 +337,15 @@ export type DatasetIconInfoResponse = {
   icon_background?: string | null
   icon_type?: string | null
   icon_url?: string | null
+}
+
+export type VoyageQueryEmbeddingOptionResponse = {
+  dimensions: 256 | 512 | 1024 | 2048
+  document_model: string
+  encoding: 'float'
+  provider: string
+  query_model: string
+  tenant_id: string
 }
 
 export type DatasetRetrievalModelResponse = {

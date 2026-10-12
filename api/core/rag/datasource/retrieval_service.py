@@ -14,6 +14,7 @@ from core.model_manager import ModelManager
 from core.rag.data_post_processor.data_post_processor import DataPostProcessor, RerankingModelDict, WeightsDict
 from core.rag.datasource.keyword.keyword_factory import Keyword
 from core.rag.datasource.vdb.vector_factory import Vector
+from core.rag.embedding.query_model import query_embedding_override
 from core.rag.embedding.retrieval import AttachmentInfoDict, RetrievalChildChunk, RetrievalSegments
 from core.rag.entities import MetadataFilteringCondition
 from core.rag.index_processor.constant.doc_type import DocType
@@ -899,6 +900,9 @@ class RetrievalService:
                         weights,
                         False,
                         session=rerank_session,
+                        query_embedding=query_embedding_override(dataset)
+                        if reranking_mode == RerankMode.WEIGHTED_SCORE
+                        else None,
                     )
                     all_documents_item = data_post_processor.invoke(
                         query=rerank_query,

@@ -104,6 +104,10 @@ class DatasetCreatePayload(BaseModel):
     provider: str = "vendor"
     external_knowledge_api_id: str | None = None
     external_knowledge_id: str | None = None
+    embedding_model: str | None = None
+    embedding_model_provider: str | None = None
+    query_embedding_model: str | None = Field(default=None, max_length=255)
+    query_embedding_model_provider: str | None = Field(default=None, max_length=255)
 
     @field_validator("indexing_technique")
     @classmethod
@@ -124,6 +128,8 @@ class DatasetUpdatePayload(BaseModel):
     permission: DatasetPermissionEnum | None = None
     indexing_technique: str | None = None
     embedding_model: str | None = None
+    query_embedding_model: str | None = Field(default=None, max_length=255)
+    query_embedding_model_provider: str | None = Field(default=None, max_length=255)
     embedding_model_provider: str | None = None
     retrieval_model: dict[str, Any] | None = Field(default=None)
     summary_index_setting: dict[str, Any] | None = Field(default=None)
@@ -617,6 +623,10 @@ class DatasetListApi(Resource):
                 provider=req_data.provider,
                 external_knowledge_api_id=req_data.external_knowledge_api_id,
                 external_knowledge_id=req_data.external_knowledge_id,
+                embedding_model_provider=req_data.embedding_model_provider,
+                embedding_model_name=req_data.embedding_model,
+                query_embedding_model=req_data.query_embedding_model,
+                query_embedding_model_provider=req_data.query_embedding_model_provider,
             )
         except services.errors.dataset.DatasetNameDuplicateError:
             raise DatasetNameDuplicateError()

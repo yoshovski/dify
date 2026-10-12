@@ -256,6 +256,10 @@ describe('IndexingSection', () => {
     embeddingModel: mockEmbeddingModel,
     setEmbeddingModel: vi.fn(),
     embeddingModelList: mockEmbeddingModelList,
+    queryEmbeddingModel: null,
+    setQueryEmbeddingModel: vi.fn(),
+    queryEmbeddingOptions: [],
+    queryEmbeddingValid: true,
     retrievalConfig: mockRetrievalConfig,
     setRetrievalConfig: vi.fn(),
     summaryIndexSetting: mockSummaryIndexSetting,
@@ -285,7 +289,7 @@ describe('IndexingSection', () => {
     it('should render the embedding model selector when the index method is high quality', () => {
       renderComponent()
 
-      expect(screen.getByText(/(?:^|\.)form\.embeddingModel(?=$|:)/)).toBeInTheDocument()
+      expect(screen.getByText(/(?:^|\.)form\.documentEmbeddingModel(?=$|:)/)).toBeInTheDocument()
       expect(screen.getByTestId('model-selector')).toHaveAttribute(
         'data-model',
         'text-embedding-ada-002',
@@ -400,7 +404,9 @@ describe('IndexingSection', () => {
     it('should hide the embedding model selector for economy indexing', () => {
       renderComponent({ indexMethod: IndexingType.ECONOMICAL })
 
-      expect(screen.queryByText(/(?:^|\.)form\.embeddingModel(?=$|:)/)).not.toBeInTheDocument()
+      expect(
+        screen.queryByText(/(?:^|\.)form\.documentEmbeddingModel(?=$|:)/),
+      ).not.toBeInTheDocument()
       expect(screen.queryByTestId('model-selector')).not.toBeInTheDocument()
     })
 

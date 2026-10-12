@@ -20,6 +20,7 @@ from configs import dify_config
 from core.errors.error import LLMBadRequestError, ProviderTokenNotInitError
 from core.helper.name_generator import generate_incremental_name
 from core.model_manager import ModelManager
+from core.rag.embedding.query_model import validate_query_model
 from core.rag.index_processor.constant.built_in_field import BuiltInField
 from core.rag.index_processor.constant.index_type import IndexStructureType, IndexTechniqueType
 from core.rag.retrieval.retrieval_methods import RetrievalMethod
@@ -422,6 +423,8 @@ class DatasetService:
         embedding_model_name: str | None = None,
         retrieval_model: RetrievalModel | None = None,
         summary_index_setting: dict[str, Any] | None = None,
+        query_embedding_model_provider: str | None = None,
+        query_embedding_model: str | None = None,
         *,
         session: Session,
     ):
@@ -470,6 +473,9 @@ class DatasetService:
         dataset.retrieval_model = retrieval_model.model_dump() if retrieval_model else None
         dataset.permission = DatasetPermissionEnum(permission) if permission else DatasetPermissionEnum.ONLY_ME
         dataset.provider = provider
+        dataset.query_embedding_model_provider = query_embedding_model_provider
+        dataset.query_embedding_model = query_embedding_model
+        validate_query_model(dataset, check_models=True)
         if summary_index_setting is not None:
             dataset.summary_index_setting = summary_index_setting
         session.add(dataset)
@@ -708,6 +714,8 @@ class DatasetService:
             Dataset: Updated dataset object
         """
         # Update retrieval model if provided
+        if data.get("query_embedding_model") is not None or data.get("query_embedding_model_provider") is not None:
+            raise ValueError("External knowledge bases cannot select a separate query embedding model")
         external_retrieval_model = data.get("external_retrieval_model", None)
         if external_retrieval_model:
             dataset.retrieval_model = external_retrieval_model
@@ -803,8 +811,23 @@ class DatasetService:
         data.pop("external_knowledge_id", None)
         data.pop("external_retrieval_model", None)
 
-        # Filter out None values except for description field
-        filtered_data = {k: v for k, v in data.items() if v is not None or k == "description"}
+        # Validate the effective pair before scheduling indexing or writing settings.
+        query_fields = {"query_embedding_model_provider", "query_embedding_model"}
+        candidate = Dataset(
+            tenant_id=dataset.tenant_id,
+            provider=dataset.provider,
+            indexing_technique=data.get("indexing_technique") or dataset.indexing_technique,
+            embedding_model_provider=data.get("embedding_model_provider") or dataset.embedding_model_provider,
+            embedding_model=data.get("embedding_model") or dataset.embedding_model,
+            query_embedding_model_provider=data.get(
+                "query_embedding_model_provider", dataset.query_embedding_model_provider
+            ),
+            query_embedding_model=data.get("query_embedding_model", dataset.query_embedding_model),
+            is_multimodal=data.get("is_multimodal") if "is_multimodal" in data else dataset.is_multimodal,
+        )
+        validate_query_model(candidate, check_models=True)
+        # Null query fields explicitly clear the override; omission preserves it.
+        filtered_data = {k: v for k, v in data.items() if v is not None or k == "description" or k in query_fields}
 
         # Handle indexing technique changes and embedding model updates
         action = DatasetService._handle_indexing_technique_change(dataset, data, filtered_data, session)
@@ -1236,6 +1259,7 @@ class DatasetService:
             # Update summary_index_setting if provided
             if knowledge_configuration.summary_index_setting is not None:
                 dataset.summary_index_setting = knowledge_configuration.summary_index_setting
+            validate_query_model(dataset)
             session.add(dataset)
         else:
             if dataset.chunk_structure and dataset.chunk_structure != knowledge_configuration.chunk_structure:
@@ -1350,6 +1374,7 @@ class DatasetService:
             # Update summary_index_setting if provided
             if knowledge_configuration.summary_index_setting is not None:
                 dataset.summary_index_setting = knowledge_configuration.summary_index_setting
+            validate_query_model(dataset)
             session.add(dataset)
             session.commit()
             if action:
@@ -2277,6 +2302,7 @@ class DocumentService:
                         else default_retrieval_model
                     )
 
+        validate_query_model(dataset)
         documents = []
         if knowledge_config.original_document_id:
             document = DocumentService.update_document_with_dataset_id(

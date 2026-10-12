@@ -139,8 +139,9 @@ vi.mock('@/context/dataset-detail', () => ({
 }))
 
 // Mock services
-vi.mock('@/service/datasets', () => ({
-  updateDatasetSetting: vi.fn().mockResolvedValue({}),
+vi.mock('@/service/console', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/service/console')>()),
+  consoleClient: { datasets: { byDatasetId: { patch: vi.fn().mockResolvedValue({}) } } },
 }))
 
 vi.mock('@/service/knowledge/use-dataset', () => ({
@@ -374,7 +375,8 @@ describe('Form', () => {
 
   describe('Save Functionality', () => {
     it('should call save when save button is clicked', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       render(<Form />)
 
       const saveButton = screen.getByRole('button', { name: /form\.save/i })
@@ -386,7 +388,8 @@ describe('Form', () => {
     })
 
     it('should show loading state on save button while saving', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       vi.mocked(updateDatasetSetting).mockImplementation(
         () => new Promise((resolve) => setTimeout(resolve, 100)),
       )
@@ -419,7 +422,8 @@ describe('Form', () => {
     })
 
     it('should save with updated name', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       render(<Form />)
 
       // Update name
@@ -441,7 +445,8 @@ describe('Form', () => {
     })
 
     it('should save with updated description', async () => {
-      const { updateDatasetSetting } = await import('@/service/datasets')
+      const { consoleClient } = await import('@/service/console')
+      const updateDatasetSetting = consoleClient.datasets.byDatasetId.patch
       render(<Form />)
 
       // Update description

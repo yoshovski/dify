@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 from core.file import remote_fetcher
 from core.helper.name_generator import generate_incremental_name
 from core.plugin.entities.plugin import PluginDependency
+from core.rag.embedding.query_model import validate_query_model
 from core.rag.index_processor.constant.index_type import IndexTechniqueType
 from core.workflow.llm_environment_variable import (
     LLMEnvironmentVariable,
@@ -338,6 +339,7 @@ class RagPipelineDslService:
                     if knowledge_configuration.summary_index_setting is not None:
                         dataset.summary_index_setting = knowledge_configuration.summary_index_setting
                     dataset.pipeline_id = pipeline.id
+                    validate_query_model(dataset)
                     self._session.add(dataset)
                     self._session.flush()
                     dataset_id = dataset.id
@@ -485,6 +487,7 @@ class RagPipelineDslService:
                     if knowledge_configuration.summary_index_setting is not None:
                         dataset.summary_index_setting = knowledge_configuration.summary_index_setting
                     dataset.pipeline_id = pipeline.id
+                    validate_query_model(dataset)
                     self._session.add(dataset)
                     self._session.flush()
                     dataset_id = dataset.id
