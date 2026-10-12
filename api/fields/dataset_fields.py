@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
@@ -5,9 +6,12 @@ from typing import Any, Literal
 from pydantic import Field, field_validator
 from sqlalchemy.orm import Session
 
+from configs.feature.voyage_query_embedding import is_voyage_four_model
 from core.rag.embedding.query_model import approved_profiles
 from fields.base import ResponseModel
 from libs.helper import to_timestamp
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetMetadataResponse(ResponseModel):
@@ -216,10 +220,40 @@ class DatasetDetailResponseSource:
 
     @property
     def query_embedding_options(self) -> list[VoyageQueryEmbeddingOptionResponse]:
-        return [
+        options = [
             VoyageQueryEmbeddingOptionResponse.model_validate(p, from_attributes=True)
             for p in approved_profiles(self.dataset.tenant_id)
         ]
+        if is_voyage_four_model(self.dataset.embedding_model) and self.dataset.embedding_model_provider:
+            try:
+                from graphon.model_runtime.entities.model_entities import ModelType
+                from services.model_provider_service import ModelProviderService
+
+                providers = ModelProviderService().get_models_by_model_type(
+                    tenant_id=self.dataset.tenant_id,
+                    model_type=ModelType.TEXT_EMBEDDING,
+                )
+                for prov in providers:
+                    if prov.provider == self.dataset.embedding_model_provider and prov.status == "active":
+                        for m in prov.models:
+                            if (
+                                m.status == "active"
+                                and is_voyage_four_model(m.model)
+                                and m.model != self.dataset.embedding_model
+                            ):
+                                if not any(o.provider == prov.provider and o.query_model == m.model for o in options):
+                                    options.append(
+                                        VoyageQueryEmbeddingOptionResponse(
+                                            provider=prov.provider,
+                                            document_model=self.dataset.embedding_model,
+                                            query_model=m.model,
+                                            dimensions=1024,
+                                            encoding="float",
+                                        )
+                                    )
+            except Exception:
+                logger.debug("Failed to auto-discover Voyage query embedding models", exc_info=True)
+        return options
 
     @property
     def app_count(self) -> int:

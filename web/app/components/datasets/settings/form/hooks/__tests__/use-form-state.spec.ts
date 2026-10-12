@@ -841,6 +841,30 @@ describe('useFormState', () => {
       })
     })
   })
+
+  describe('Query embedding auto-discovery', () => {
+    it('discovers compatible Voyage 4 query models from active models when options are empty', () => {
+      mockDataset = {
+        ...createDefaultMockDataset(),
+        embedding_model: 'voyage/voyage-4',
+        embedding_model_provider: 'openai_api_compatible',
+        query_embedding_options: [],
+      }
+
+      const { result } = renderHook(() => useFormState())
+      expect(result.current.queryEmbeddingOptions).toEqual([
+        {
+          tenant_id: '',
+          provider: 'openai_api_compatible',
+          document_model: 'voyage/voyage-4',
+          query_model: 'voyage/voyage-4-lite',
+          dimensions: 1024,
+          encoding: 'float',
+        },
+      ])
+      expect(result.current.queryEmbeddingValid).toBe(true)
+    })
+  })
 })
 
 vi.mock('@tanstack/react-query', async (importOriginal) => {
@@ -854,6 +878,22 @@ vi.mock('@tanstack/react-query', async (importOriginal) => {
       >
     }) => {
       if (!options.queryKey[0].includes('modelTypes')) return actual.useQuery(options)
+      const keyStr = JSON.stringify(options.queryKey)
+      if (keyStr.includes('text-embedding')) {
+        return {
+          data: [
+            {
+              provider: 'openai_api_compatible',
+              status: 'active',
+              models: [
+                { model: 'voyage/voyage-4', status: 'active' },
+                { model: 'voyage/voyage-4-lite', status: 'active' },
+                { model: 'voyage/voyage-3.5', status: 'active' },
+              ],
+            },
+          ],
+        }
+      }
       return { data: [] }
     },
   }

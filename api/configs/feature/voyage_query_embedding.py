@@ -4,6 +4,15 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+VOYAGE_FOUR_CANONICAL_MODELS = {"voyage-4", "voyage-4-lite", "voyage-4-large"}
+
+
+def is_voyage_four_model(value: str | None) -> bool:
+    if not value:
+        return False
+    canonical = value.removeprefix("voyage/").strip().lower()
+    return canonical in VOYAGE_FOUR_CANONICAL_MODELS
+
 
 class VoyageQueryEmbeddingProfile(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -18,8 +27,7 @@ class VoyageQueryEmbeddingProfile(BaseModel):
     @field_validator("document_model", "query_model")
     @classmethod
     def voyage_four_only(cls, value: str) -> str:
-        canonical = value.removeprefix("voyage/")
-        if canonical not in {"voyage-4", "voyage-4-lite", "voyage-4-large"}:
+        if not is_voyage_four_model(value):
             raise ValueError("Split query embeddings require a verified Voyage 4-family model")
         return value
 
