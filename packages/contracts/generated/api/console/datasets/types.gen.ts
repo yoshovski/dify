@@ -14,12 +14,16 @@ export type DatasetListResponse = {
 
 export type DatasetCreatePayload = {
   description?: string
+  embedding_model?: string | null
+  embedding_model_provider?: string | null
   external_knowledge_api_id?: string | null
   external_knowledge_id?: string | null
   indexing_technique?: string | null
   name: string
   permission?: PermissionEnum | null
   provider?: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
 }
 
 export type DatasetDetailResponse = {
@@ -51,6 +55,9 @@ export type DatasetDetailResponse = {
   permission_keys?: Array<string>
   pipeline_id: string | null
   provider: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
+  query_embedding_options?: Array<VoyageQueryEmbeddingOptionResponse>
   retrieval_model_dict: DatasetRetrievalModelResponse
   runtime_mode: string | null
   summary_index_setting?: DatasetSummaryIndexSettingResponse
@@ -247,6 +254,9 @@ export type DatasetDetailWithPartialMembersResponse = {
   permission_keys?: Array<string>
   pipeline_id: string | null
   provider: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
+  query_embedding_options?: Array<VoyageQueryEmbeddingOptionResponse>
   retrieval_model_dict: DatasetRetrievalModelResponse
   runtime_mode: string | null
   summary_index_setting?: DatasetSummaryIndexSettingResponse
@@ -277,6 +287,8 @@ export type DatasetUpdatePayload = {
     [key: string]: string
   }> | null
   permission?: PermissionEnum | null
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
   retrieval_model?: {
     [key: string]: unknown
   } | null
@@ -597,6 +609,9 @@ export type DatasetListItemResponse = {
   permission_keys?: Array<string>
   pipeline_id: string | null
   provider: string
+  query_embedding_model?: string | null
+  query_embedding_model_provider?: string | null
+  query_embedding_options?: Array<VoyageQueryEmbeddingOptionResponse>
   retrieval_model_dict: DatasetRetrievalModelResponse
   runtime_mode: string | null
   summary_index_setting?: DatasetSummaryIndexSettingResponse
@@ -634,6 +649,15 @@ export type DatasetIconInfoResponse = {
   icon_background?: string | null
   icon_type?: string | null
   icon_url?: string | null
+}
+
+export type VoyageQueryEmbeddingOptionResponse = {
+  dimensions: 256 | 512 | 1024 | 2048
+  document_model: string
+  encoding: 'float'
+  provider: string
+  query_model: string
+  tenant_id: string
 }
 
 export type DatasetRetrievalModelResponse = {

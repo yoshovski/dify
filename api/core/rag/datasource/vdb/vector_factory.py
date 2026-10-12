@@ -14,6 +14,7 @@ from core.rag.datasource.vdb.vector_base import BaseVector, VectorIndexStructDic
 from core.rag.datasource.vdb.vector_type import VectorType
 from core.rag.embedding.cached_embedding import CacheEmbedding
 from core.rag.embedding.embedding_base import Embeddings
+from core.rag.embedding.query_model import query_embedding_override, validate_query_model
 from core.rag.index_processor.constant.doc_type import DocType
 from core.rag.models.document import Document
 from extensions.ext_redis import redis_client
@@ -60,8 +61,10 @@ class _LazyEmbeddings(Embeddings):
     def __init__(self, dataset: Dataset):
         self._dataset = dataset
         self._real: Embeddings | None = None
+        self._query: Embeddings | None = None
 
     def _ensure(self) -> Embeddings:
+        validate_query_model(self._dataset)
         if self._real is None:
             model_manager = ModelManager.for_tenant(tenant_id=self._dataset.tenant_id)
             embedding_model = model_manager.get_model_instance(
@@ -73,6 +76,15 @@ class _LazyEmbeddings(Embeddings):
             self._real = CacheEmbedding(embedding_model)
         return self._real
 
+    def _ensure_query(self) -> Embeddings:
+        profile = validate_query_model(self._dataset)
+        if profile is None:
+            return self._ensure()
+        if self._query is None:
+            self._query = query_embedding_override(self._dataset)
+        assert self._query is not None
+        return self._query
+
     @override
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return self._ensure().embed_documents(texts)
@@ -83,7 +95,7 @@ class _LazyEmbeddings(Embeddings):
 
     @override
     def embed_query(self, text: str) -> list[float]:
-        return self._ensure().embed_query(text)
+        return self._ensure_query().embed_query(text)
 
     @override
     def embed_multimodal_query(self, multimodel_document: dict[str, Any]) -> list[float]:
@@ -95,7 +107,7 @@ class _LazyEmbeddings(Embeddings):
 
     @override
     async def aembed_query(self, text: str) -> list[float]:
-        return await self._ensure().aembed_query(text)
+        return await self._ensure_query().aembed_query(text)
 
 
 class Vector:
@@ -284,8 +296,9 @@ class Vector:
             redis_client.delete(collection_exist_cache_key)
 
     def _get_embeddings(self) -> Embeddings:
+        if self._dataset.query_embedding_model is not None:
+            return _LazyEmbeddings(self._dataset)
         model_manager = ModelManager.for_tenant(tenant_id=self._dataset.tenant_id)
-
         embedding_model = model_manager.get_model_instance(
             tenant_id=self._dataset.tenant_id,
             provider=self._dataset.embedding_model_provider,

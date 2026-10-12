@@ -157,6 +157,8 @@ class DatasetCreatePayload(BaseModel):
             "[Get Available Models](/api-reference/models/get-available-models) with `model_type=text-embedding`."
         ),
     )
+    query_embedding_model: str | None = Field(default=None, max_length=255)
+    query_embedding_model_provider: str | None = Field(default=None, max_length=255)
     embedding_model_provider: str | None = Field(
         default=None,
         description=(
@@ -192,6 +194,8 @@ class DatasetUpdatePayload(BaseModel):
             "[Get Available Models](/api-reference/models/get-available-models) with `model_type=text-embedding`."
         ),
     )
+    query_embedding_model: str | None = Field(default=None, max_length=255)
+    query_embedding_model_provider: str | None = Field(default=None, max_length=255)
     embedding_model_provider: str | None = Field(
         default=None,
         description=(
@@ -547,6 +551,8 @@ class DatasetListApi(DatasetApiResource):
                 external_knowledge_id=payload.external_knowledge_id,
                 embedding_model_provider=payload.embedding_model_provider,
                 embedding_model_name=payload.embedding_model,
+                query_embedding_model=payload.query_embedding_model,
+                query_embedding_model_provider=payload.query_embedding_model_provider,
                 retrieval_model=payload.retrieval_model,
                 summary_index_setting=payload.summary_index_setting,
             )

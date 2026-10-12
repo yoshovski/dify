@@ -45,6 +45,7 @@ from core.prompt.simple_prompt_transform import ModelMode
 from core.rag.data_post_processor.data_post_processor import DataPostProcessor, RerankingModelDict, WeightsDict
 from core.rag.datasource.keyword.jieba.jieba_keyword_table_handler import JiebaKeywordTableHandler
 from core.rag.datasource.retrieval_service import DefaultRetrievalModelDict, RetrievalService
+from core.rag.embedding.query_model import query_embedding_override
 from core.rag.entities import Condition, DocumentContext, RetrievalSourceMetadata
 from core.rag.index_processor.constant.doc_type import DocType
 from core.rag.index_processor.constant.index_type import IndexStructureType, IndexTechniqueType
@@ -829,6 +830,9 @@ class DatasetRetrieval:
                     "The configured knowledge base list have different embedding model, please set reranking model."
                 )
             if reranking_enable and reranking_mode == RerankMode.WEIGHTED_SCORE:
+                query_pairs = {(d.query_embedding_model_provider, d.query_embedding_model) for d in available_datasets}
+                if len(query_pairs) > 1:
+                    raise ValueError("Knowledge bases with different query models require a reranking model")
                 if weights is not None:
                     weights["vector_setting"]["embedding_provider_name"] = available_datasets[
                         0
@@ -1982,6 +1986,9 @@ class DatasetRetrieval:
                             weights,
                             False,
                             session=session,
+                            query_embedding=query_embedding_override(available_datasets[0])
+                            if reranking_mode == RerankMode.WEIGHTED_SCORE
+                            else None,
                         )
                         if query:
                             all_documents_item = data_post_processor.invoke(

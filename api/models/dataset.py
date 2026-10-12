@@ -198,6 +198,8 @@ class Dataset(Base):
     )
     embedding_model = mapped_column(sa.String(255), nullable=True)
     embedding_model_provider = mapped_column(sa.String(255), nullable=True)
+    query_embedding_model: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    query_embedding_model_provider: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     keyword_number = mapped_column(sa.Integer, nullable=True, server_default=sa.text("10"))
     collection_binding_id = mapped_column(StringUUID, nullable=True)
     retrieval_model = mapped_column(AdjustedJSON, nullable=True)

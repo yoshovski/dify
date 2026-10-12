@@ -1,4 +1,5 @@
 'use client'
+import type { DatasetUpdatePayload } from '@dify/contracts/api/console/datasets/types.gen'
 import type { AppIconSelection } from '@/app/components/base/app-icon-picker'
 import type { DefaultModel } from '@/app/components/header/account-setting/model-provider-page/declarations'
 import type { Member } from '@/models/common'
@@ -15,8 +16,7 @@ import { useDatasetDetailContextWithSelector } from '@/context/dataset-detail'
 import { workspacePermissionKeysAtom } from '@/context/permission-state'
 import { userProfileQueryOptions } from '@/features/account-profile/client'
 import { DatasetPermission } from '@/models/datasets'
-import { consoleQuery } from '@/service/console'
-import { updateDatasetSetting } from '@/service/datasets'
+import { consoleClient, consoleQuery } from '@/service/console'
 import { useInvalidDatasetList } from '@/service/knowledge/use-dataset'
 import { useMembers } from '@/service/use-common'
 import { getDatasetACLCapabilities } from '@/utils/permission'
@@ -96,6 +96,28 @@ export const useFormState = () => {
         },
   )
 
+  const [queryEmbeddingModel, setQueryEmbeddingModel] = useState<DefaultModel | null>(
+    currentDataset?.query_embedding_model && currentDataset.query_embedding_model_provider
+      ? {
+          model: currentDataset.query_embedding_model,
+          provider: currentDataset.query_embedding_model_provider,
+        }
+      : null,
+  )
+  const queryEmbeddingOptions = (currentDataset?.query_embedding_options ?? []).filter(
+    (option) =>
+      option.document_model === embeddingModel.model &&
+      option.provider === embeddingModel.provider &&
+      !currentDataset?.is_multimodal,
+  )
+  const queryEmbeddingValid =
+    queryEmbeddingModel === null ||
+    queryEmbeddingOptions.some(
+      (option) =>
+        option.query_model === queryEmbeddingModel.model &&
+        option.provider === queryEmbeddingModel.provider,
+    )
+
   // Summary index state
   const [summaryIndexSetting, setSummaryIndexSetting] = useState(
     currentDataset?.summary_index_setting,
@@ -169,6 +191,11 @@ export const useFormState = () => {
       return
     }
 
+    if (!queryEmbeddingValid || (queryEmbeddingModel && indexMethod !== 'high_quality')) {
+      toast.error(t(($) => $['form.queryEmbeddingInvalid'], { ns: 'datasetSettings' }))
+      return
+    }
+
     if (retrievalConfig.weights) {
       retrievalConfig.weights.vector_setting.embedding_provider_name = embeddingModel.provider || ''
       retrievalConfig.weights.vector_setting.embedding_model_name = embeddingModel.model || ''
@@ -176,10 +203,9 @@ export const useFormState = () => {
 
     try {
       setLoading(true)
-      const body: Record<string, unknown> = {
+      const body: DatasetUpdatePayload = {
         name,
         icon_info: iconInfo,
-        doc_form: currentDataset?.doc_form,
         description,
         permission,
         indexing_technique: indexMethod,
@@ -191,7 +217,8 @@ export const useFormState = () => {
         },
         embedding_model: embeddingModel.model,
         embedding_model_provider: embeddingModel.provider,
-        keyword_number: keywordNumber,
+        query_embedding_model: queryEmbeddingModel?.model ?? null,
+        query_embedding_model_provider: queryEmbeddingModel?.provider ?? null,
         summary_index_setting: summaryIndexSetting,
       }
 
@@ -210,12 +237,15 @@ export const useFormState = () => {
         body.partial_member_list = selectedMemberIDs.map((id) => {
           return {
             user_id: id,
-            role: memberList.find((member) => member.id === id)?.role,
+            role: memberList.find((member) => member.id === id)?.role ?? 'normal',
           }
         })
       }
 
-      await updateDatasetSetting({ datasetId: currentDataset!.id, body })
+      await consoleClient.datasets.byDatasetId.patch({
+        params: { dataset_id: currentDataset!.id },
+        body,
+      })
       toast.success(t(($) => $['actionMsg.modifiedSuccessfully'], { ns: 'common' }))
 
       if (mutateDatasets) {
@@ -295,6 +325,11 @@ export const useFormState = () => {
     embeddingModel,
     setEmbeddingModel,
     embeddingModelList,
+
+    queryEmbeddingModel,
+    setQueryEmbeddingModel,
+    queryEmbeddingOptions,
+    queryEmbeddingValid,
 
     // Summary index
     summaryIndexSetting,

@@ -222,6 +222,18 @@ export const zDatasetIconInfoResponse = z.object({
 })
 
 /**
+ * VoyageQueryEmbeddingOptionResponse
+ */
+export const zVoyageQueryEmbeddingOptionResponse = z.object({
+  dimensions: z.union([z.literal(256), z.literal(512), z.literal(1024), z.literal(2048)]),
+  document_model: z.string(),
+  encoding: z.literal('float'),
+  provider: z.string(),
+  query_model: z.string(),
+  tenant_id: z.string(),
+})
+
+/**
  * DatasetSummaryIndexSettingResponse
  */
 export const zDatasetSummaryIndexSettingResponse = z.object({
@@ -655,6 +667,9 @@ export const zDatasetDetailResponse = z.object({
   permission_keys: z.array(z.string()).optional(),
   pipeline_id: z.string().nullable(),
   provider: z.string(),
+  query_embedding_model: z.string().nullish(),
+  query_embedding_model_provider: z.string().nullish(),
+  query_embedding_options: z.array(zVoyageQueryEmbeddingOptionResponse).optional(),
   retrieval_model_dict: zDatasetRetrievalModelResponse,
   runtime_mode: z.string().nullable(),
   summary_index_setting: zDatasetSummaryIndexSettingResponse.optional(),

@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 import pickle
@@ -22,8 +23,17 @@ logger = logging.getLogger(__name__)
 
 
 class CacheEmbedding(Embeddings):
-    def __init__(self, model_instance: ModelInstance):
+    def __init__(
+        self, model_instance: ModelInstance, *, query_cache_namespace: str = "", query_dimensions: int | None = None
+    ):
         self._model_instance = model_instance
+        self._query_cache_namespace = query_cache_namespace
+        self._query_dimensions = query_dimensions
+
+    def _check_query_dimensions(self, vector: list[float]) -> list[float]:
+        if self._query_dimensions is not None and len(vector) != self._query_dimensions:
+            raise ValueError("Query embedding dimensions do not match the approved document embedding space")
+        return vector
 
     @override
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -197,11 +207,13 @@ class CacheEmbedding(Embeddings):
         # use doc embedding cache or store if not exists
         hash = helper.generate_text_hash(text)
         embedding_cache_key = f"{self._model_instance.provider}_{self._model_instance.model_name}_{hash}"
+        if self._query_cache_namespace:
+            embedding_cache_key = f"query:{self._query_cache_namespace}:{embedding_cache_key}"
         embedding = redis_client.get(embedding_cache_key)
         if embedding:
             redis_client.expire(embedding_cache_key, 600)
             decoded_embedding = np.frombuffer(base64.b64decode(embedding), dtype="float")
-            return [float(x) for x in decoded_embedding]
+            return self._check_query_dimensions([float(x) for x in decoded_embedding])
         try:
             embedding_result = self._model_instance.invoke_text_embedding(
                 texts=[text], input_type=EmbeddingInputType.QUERY
@@ -217,6 +229,7 @@ class CacheEmbedding(Embeddings):
                 logger.exception("Failed to embed query text '%s...(%s chars)'", text[:10], len(text))
             raise ex
 
+        self._check_query_dimensions(embedding_results)
         try:
             # encode embedding to base64
             embedding_vector = np.array(embedding_results)
@@ -234,6 +247,10 @@ class CacheEmbedding(Embeddings):
             raise ex
 
         return embedding_results  # type: ignore
+
+    @override
+    async def aembed_query(self, text: str) -> list[float]:
+        return await asyncio.to_thread(self.embed_query, text)
 
     @override
     def embed_multimodal_query(self, multimodel_document: dict[str, Any]) -> list[float]:

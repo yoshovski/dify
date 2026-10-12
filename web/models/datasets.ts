@@ -1,3 +1,4 @@
+import type { DatasetDetailResponse } from '@dify/contracts/api/console/datasets/types.gen'
 import type { TagResponse as Tag } from '@dify/contracts/api/console/tags/types.gen'
 import type { DataSourceNotionPage, DataSourceProvider } from './common'
 import type { DatasourceType } from './pipeline'
@@ -54,7 +55,12 @@ export type SummaryIndexSetting = {
   summary_prompt?: string
 }
 
-export type DataSet = {
+export type DataSet = Partial<
+  Pick<
+    DatasetDetailResponse,
+    'query_embedding_model' | 'query_embedding_model_provider' | 'query_embedding_options'
+  >
+> & {
   id: string
   name: string
   indexing_status: DocumentIndexingStatus

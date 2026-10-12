@@ -53,6 +53,10 @@ const Form = () => {
     embeddingModel,
     setEmbeddingModel,
     embeddingModelList,
+    queryEmbeddingModel,
+    setQueryEmbeddingModel,
+    queryEmbeddingOptions,
+    queryEmbeddingValid,
 
     // Summary index
     summaryIndexSetting,
@@ -69,7 +73,13 @@ const Form = () => {
   const readonly = !canEditSettings
 
   return (
-    <div className="flex w-full flex-col gap-y-4 px-20 py-8 sm:w-240">
+    <form
+      className="flex w-full flex-col gap-y-4 px-20 py-8 sm:w-240"
+      onSubmit={(event) => {
+        event.preventDefault()
+        void handleSave()
+      }}
+    >
       <BasicInfoSection
         currentDataset={currentDataset}
         name={name}
@@ -108,6 +118,10 @@ const Form = () => {
           embeddingModel={embeddingModel}
           setEmbeddingModel={setEmbeddingModel}
           embeddingModelList={embeddingModelList}
+          queryEmbeddingModel={queryEmbeddingModel}
+          setQueryEmbeddingModel={setQueryEmbeddingModel}
+          queryEmbeddingOptions={queryEmbeddingOptions}
+          queryEmbeddingValid={queryEmbeddingValid}
           retrievalConfig={retrievalConfig}
           setRetrievalConfig={setRetrievalConfig}
           summaryIndexSetting={summaryIndexSetting}
@@ -128,13 +142,13 @@ const Form = () => {
             variant="primary"
             loading={loading}
             disabled={readonly}
-            onClick={handleSave}
+            type="submit"
           >
             {t(($) => $['form.save'], { ns: 'datasetSettings' })}
           </Button>
         </div>
       </div>
-    </div>
+    </form>
   )
 }
 

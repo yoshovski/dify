@@ -17,6 +17,7 @@ from pydantic import (
 from pydantic_settings import BaseSettings
 
 from .hosted_service import HostedServiceConfig
+from .voyage_query_embedding import VoyageQueryEmbeddingProfile
 
 
 class SecurityConfig(BaseSettings):
@@ -1259,6 +1260,11 @@ class DataSetConfig(BaseSettings):
     """
     Configuration for dataset management
     """
+
+    VOYAGE_QUERY_EMBEDDING_PROFILES: list[VoyageQueryEmbeddingProfile] = Field(
+        default_factory=list,
+        description="Approved tenant-scoped Voyage 4 document/query model pairs. Empty disables split models.",
+    )
 
     PLAN_SANDBOX_CLEAN_DAY_SETTING: PositiveInt = Field(
         description="Interval in days for dataset cleanup operations - plan: sandbox",
