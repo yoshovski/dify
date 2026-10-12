@@ -82,10 +82,18 @@ def test_profiles_cannot_approve_other_families(model):
         VoyageQueryEmbeddingProfile(tenant_id="t", provider="p", document_model="voyage-4", query_model=model)
 
 
+def test_auto_discovery_approves_voyage_four_pairs(monkeypatch):
+    apply_config_overrides(monkeypatch, VOYAGE_QUERY_EMBEDDING_PROFILES=[])
+    profile = query_model.validate_query_model(dataset())
+    assert profile is not None
+    assert profile.document_model == "voyage/voyage-4"
+    assert profile.query_model == "voyage/voyage-4-lite"
+
+
 def test_alias_name_alone_is_not_approval(monkeypatch):
     apply_config_overrides(monkeypatch, VOYAGE_QUERY_EMBEDDING_PROFILES=[])
     with pytest.raises(ValueError, match="approved"):
-        query_model.validate_query_model(dataset())
+        query_model.validate_query_model(dataset(query_embedding_model="voyage-3.5"))
 
 
 def test_save_verifies_document_and_query_output_dimensions(approved):

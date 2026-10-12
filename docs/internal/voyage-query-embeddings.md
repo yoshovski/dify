@@ -4,9 +4,11 @@ Knowledge settings now distinguish **Document embedding model** (indexing) from 
 
 ## Compatibility approval
 
-The first version supports text-only internal high-quality datasets and explicitly approved Voyage 4-family pairs. Voyage 3/3.5 and other embedding families cannot use an independent query model. Equal vector dimensions alone do not imply a compatible embedding space.
+The first version supports text-only internal high-quality datasets and Voyage 4-family pairs (`voyage-4`, `voyage-4-lite`, `voyage-4-large`). Voyage 3/3.5 and other embedding families cannot use an independent query model. Equal vector dimensions alone do not imply a compatible embedding space.
 
-A deployment operator must verify actual provider/LiteLLM mappings, Voyage 4 family membership, document index dimensions, and float output encoding before approving a pair. Model aliases alone do not prove those properties. Add a tenant-scoped, credential-free JSON profile through `VOYAGE_QUERY_EMBEDDING_PROFILES`, available to API and worker services:
+When the document embedding model belongs to the Voyage 4 family, active Voyage 4 models configured under the same provider in the workspace are automatically discovered and selectable in the UI without requiring server-level configuration.
+
+For multi-tenant environments or explicit operator constraints, a tenant-scoped, credential-free JSON profile can optionally be configured through `VOYAGE_QUERY_EMBEDDING_PROFILES`, available to API and worker services:
 
 ```json
 [
@@ -21,9 +23,9 @@ A deployment operator must verify actual provider/LiteLLM mappings, Voyage 4 fam
 ]
 ```
 
-Use the actual indexed dimensions, not the example value. Allowed sizes are 256, 512, 1024 and 2048. Native provider model names without the `voyage/` prefix are also accepted. A profile is valid only for its named tenant and provider; an empty list disables independent query models. Reverify approval after changing provider endpoint mappings or output options. Do not include credentials in profiles.
+Use the actual indexed dimensions, not the example value. Allowed sizes are 256, 512, 1024 and 2048. Native provider model names without the `voyage/` prefix are also accepted. When operator profiles are specified, they enforce strict tenant and provider restrictions. When `VOYAGE_QUERY_EMBEDDING_PROFILES` is empty (the default), active Voyage 4 models under the same provider are automatically permitted. Reverify approval after changing provider endpoint mappings or output options. Do not include credentials in profiles.
 
-After installing the additive database migration, deploy API/worker and web together. Register both models as active text embedding models in the target workspace. The UI filters choices using approved profiles and the workspace's active model list. Unsupported configurations keep the document default; an existing override that becomes unavailable remains visible with an error until explicitly cleared. APIs enforce approval independently of the UI.
+After installing the additive database migration, deploy API/worker and web together. Register both models as active text embedding models in the target workspace. The UI presents available Voyage 4 choices from the workspace's active model list. Unsupported configurations keep the document default; an existing override that becomes unavailable remains visible with an error until explicitly cleared. APIs enforce approval independently of the UI.
 
 On save, Dify checks available model schemas and actual output dimensions with fixed non-customer validation text. This produces two small embedding requests when validating an override. Retrieval also checks query dimensions, including cached vectors, before sending a vector to the database. Query caches use tenant/provider/model/dimensions/encoding identity; document cache and collection identity are unchanged.
 

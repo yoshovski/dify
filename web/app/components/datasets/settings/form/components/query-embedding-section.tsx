@@ -2,8 +2,17 @@
 import type { DatasetDetailResponse } from '@dify/contracts/api/console/datasets/types.gen'
 import type { ProviderWithModelsResponse } from '@dify/contracts/api/console/workspaces/types.gen'
 import type { DefaultModel } from '@/app/components/header/account-setting/model-provider-page/declarations'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectItemIndicator,
+  SelectItemText,
+  SelectTrigger,
+} from '@langgenius/dify-ui/select'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
+import ModelIcon from '@/app/components/header/account-setting/model-provider-page/model-icon'
 
 type Props = {
   queryModel: DefaultModel | null
@@ -43,41 +52,103 @@ export default function QueryEmbeddingSection({
       option.provider === queryModel?.provider && option.query_model === queryModel?.model,
   )
   const unavailable = queryModel !== null && selected === -1
+
+  const selectedProvider = queryModel
+    ? models.find((provider) => provider.provider === queryModel.provider)
+    : undefined
+
+  const selectValue = queryModel === null ? 'same' : unavailable ? 'unavailable' : String(selected)
+
   return (
     <div className="flex gap-x-1">
       <label htmlFor={id} className="w-45 shrink-0 pt-1 system-sm-semibold text-text-secondary">
         {t(($) => $['form.queryEmbeddingModel'], { ns: 'datasetSettings' })}
       </label>
       <div className="grow">
-        <select
-          id={id}
-          aria-describedby={`${id}-help`}
-          aria-invalid={!valid || unavailable}
-          disabled={readonly}
-          value={queryModel === null ? 'same' : unavailable ? 'unavailable' : String(selected)}
-          onChange={(event) => {
-            if (event.target.value === 'same') onChange(null)
-            else {
-              const option = available[Number(event.target.value)]
+        <Select
+          value={selectValue}
+          onValueChange={(val) => {
+            if (val === 'same') {
+              onChange(null)
+            } else if (val && val !== 'unavailable') {
+              const option = available[Number(val)]
               if (option) onChange({ provider: option.provider, model: option.query_model })
             }
           }}
-          className="w-full rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-text-primary outline-offset-2 focus-visible:outline-2 focus-visible:outline-components-input-border-active"
+          disabled={readonly}
         >
-          <option value="same">
-            {t(($) => $['form.queryEmbeddingSame'], { ns: 'datasetSettings' })}
-          </option>
-          {unavailable && (
-            <option value="unavailable" disabled>
-              {queryModel.model}
-            </option>
-          )}
-          {available.map((option, index) => (
-            <option key={`${option.provider}/${option.query_model}`} value={index}>
-              {option.query_model}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            id={id}
+            aria-describedby={`${id}-help`}
+            aria-invalid={!valid || unavailable}
+            aria-label={t(($) => $['form.queryEmbeddingModel'], { ns: 'datasetSettings' })}
+            disabled={readonly}
+            className="w-full"
+          >
+            <span className="flex items-center gap-2 truncate">
+              {queryModel === null ? (
+                <span className="truncate system-sm-regular text-text-primary">
+                  {t(($) => $['form.queryEmbeddingSame'], { ns: 'datasetSettings' })}
+                </span>
+              ) : unavailable ? (
+                <span className="truncate system-sm-regular text-text-secondary">
+                  {queryModel.model}
+                </span>
+              ) : (
+                <>
+                  <ModelIcon
+                    provider={selectedProvider}
+                    modelName={queryModel.model}
+                    className="size-4 shrink-0 p-0.5"
+                  />
+                  <span className="truncate system-sm-regular text-text-primary">
+                    {queryModel.model}
+                  </span>
+                </>
+              )}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="same">
+              <SelectItemText>
+                <span className="truncate system-sm-regular text-text-primary">
+                  {t(($) => $['form.queryEmbeddingSame'], { ns: 'datasetSettings' })}
+                </span>
+              </SelectItemText>
+              <SelectItemIndicator />
+            </SelectItem>
+            {unavailable && (
+              <SelectItem value="unavailable" disabled>
+                <SelectItemText>
+                  <span className="truncate system-sm-regular text-text-secondary">
+                    {queryModel.model}
+                  </span>
+                </SelectItemText>
+                <SelectItemIndicator />
+              </SelectItem>
+            )}
+            {available.map((option, index) => {
+              const prov = models.find((provider) => provider.provider === option.provider)
+              return (
+                <SelectItem key={`${option.provider}/${option.query_model}`} value={String(index)}>
+                  <span className="flex items-center gap-2 truncate">
+                    <ModelIcon
+                      provider={prov}
+                      modelName={option.query_model}
+                      className="size-4 shrink-0 p-0.5"
+                    />
+                    <SelectItemText>
+                      <span className="truncate system-sm-regular text-text-primary">
+                        {option.query_model}
+                      </span>
+                    </SelectItemText>
+                  </span>
+                  <SelectItemIndicator />
+                </SelectItem>
+              )
+            })}
+          </SelectContent>
+        </Select>
         <p id={`${id}-help`} className="mt-2 body-xs-regular text-text-tertiary">
           {t(
             ($) =>

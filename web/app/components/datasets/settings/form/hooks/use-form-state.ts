@@ -3,7 +3,11 @@ import type { DatasetUpdatePayload } from '@dify/contracts/api/console/datasets/
 import type { AppIconSelection } from '@/app/components/base/app-icon-picker'
 import type { DefaultModel } from '@/app/components/header/account-setting/model-provider-page/declarations'
 import type { Member } from '@/models/common'
-import type { IconInfo, SummaryIndexSetting as SummaryIndexSettingType } from '@/models/datasets'
+import type {
+  DataSet,
+  IconInfo,
+  SummaryIndexSetting as SummaryIndexSettingType,
+} from '@/models/datasets'
 import type { RetrievalConfig } from '@/types/app'
 import { toast } from '@langgenius/dify-ui/toast'
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
@@ -27,6 +31,15 @@ const DEFAULT_APP_ICON: IconInfo = {
   icon: '📙',
   icon_background: '#FFF4ED',
   icon_url: '',
+}
+
+const isVoyageFourModel = (modelName?: string | null) => {
+  if (!modelName) return false
+  const canonical = modelName
+    .replace(/^voyage\//i, '')
+    .trim()
+    .toLowerCase()
+  return canonical === 'voyage-4' || canonical === 'voyage-4-lite' || canonical === 'voyage-4-large'
 }
 
 export const useFormState = () => {
@@ -96,33 +109,6 @@ export const useFormState = () => {
         },
   )
 
-  const [queryEmbeddingModel, setQueryEmbeddingModel] = useState<DefaultModel | null>(
-    currentDataset?.query_embedding_model && currentDataset.query_embedding_model_provider
-      ? {
-          model: currentDataset.query_embedding_model,
-          provider: currentDataset.query_embedding_model_provider,
-        }
-      : null,
-  )
-  const queryEmbeddingOptions = (currentDataset?.query_embedding_options ?? []).filter(
-    (option) =>
-      option.document_model === embeddingModel.model &&
-      option.provider === embeddingModel.provider &&
-      !currentDataset?.is_multimodal,
-  )
-  const queryEmbeddingValid =
-    queryEmbeddingModel === null ||
-    queryEmbeddingOptions.some(
-      (option) =>
-        option.query_model === queryEmbeddingModel.model &&
-        option.provider === queryEmbeddingModel.provider,
-    )
-
-  // Summary index state
-  const [summaryIndexSetting, setSummaryIndexSetting] = useState(
-    currentDataset?.summary_index_setting,
-  )
-
   // Model lists
   const { data: rerankModelList = [] } = useQuery(
     consoleQuery.workspaces.current.models.modelTypes.byModelType.get.queryOptions({
@@ -135,6 +121,73 @@ export const useFormState = () => {
       input: { params: { model_type: ModelTypeEnum.textEmbedding } },
       select: (response) => response.data,
     }),
+  )
+
+  const [queryEmbeddingModel, setQueryEmbeddingModel] = useState<DefaultModel | null>(
+    currentDataset?.query_embedding_model && currentDataset.query_embedding_model_provider
+      ? {
+          model: currentDataset.query_embedding_model,
+          provider: currentDataset.query_embedding_model_provider,
+        }
+      : null,
+  )
+  const queryEmbeddingOptions = useMemo(() => {
+    if (currentDataset?.is_multimodal) return []
+
+    const explicitOptions = (currentDataset?.query_embedding_options ?? []).filter(
+      (option) =>
+        option.document_model === embeddingModel.model &&
+        option.provider === embeddingModel.provider,
+    )
+
+    const autoOptions: NonNullable<DataSet['query_embedding_options']> = []
+    if (isVoyageFourModel(embeddingModel.model) && embeddingModel.provider) {
+      const activeProvider = embeddingModelList.find(
+        (p) => p.provider === embeddingModel.provider && p.status === 'active',
+      )
+      if (activeProvider) {
+        for (const m of activeProvider.models) {
+          if (
+            m.status === 'active' &&
+            isVoyageFourModel(m.model) &&
+            m.model !== embeddingModel.model &&
+            !explicitOptions.some((opt) => opt.query_model === m.model)
+          ) {
+            autoOptions.push({
+              tenant_id:
+                explicitOptions[0]?.tenant_id ??
+                (currentDataset as { tenant_id?: string })?.tenant_id ??
+                '',
+              provider: activeProvider.provider,
+              document_model: embeddingModel.model,
+              query_model: m.model,
+              dimensions: (explicitOptions[0]?.dimensions ?? 1024) as 256 | 512 | 1024 | 2048,
+              encoding: 'float',
+            })
+          }
+        }
+      }
+    }
+
+    return [...explicitOptions, ...autoOptions]
+  }, [
+    currentDataset?.is_multimodal,
+    currentDataset?.query_embedding_options,
+    embeddingModel.model,
+    embeddingModel.provider,
+    embeddingModelList,
+  ])
+  const queryEmbeddingValid =
+    queryEmbeddingModel === null ||
+    queryEmbeddingOptions.some(
+      (option) =>
+        option.query_model === queryEmbeddingModel.model &&
+        option.provider === queryEmbeddingModel.provider,
+    )
+
+  // Summary index state
+  const [summaryIndexSetting, setSummaryIndexSetting] = useState(
+    currentDataset?.summary_index_setting,
   )
   const { data: membersData } = useMembers()
   const invalidDatasetList = useInvalidDatasetList()

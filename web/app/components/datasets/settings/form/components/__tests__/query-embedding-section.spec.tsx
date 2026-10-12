@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import QueryEmbeddingSection from '../query-embedding-section'
 
@@ -7,6 +8,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (selector: (keys: Record<string, string>) => string) =>
       selector(new Proxy({}, { get: (_, key) => String(key) })),
+    i18n: { language: 'en_US' },
   }),
 }))
 
@@ -54,13 +56,15 @@ const props: ComponentProps<typeof QueryEmbeddingSection> = {
 }
 
 describe('Query embedding selection', () => {
-  it('offers only approved active models and lets users restore the document model', () => {
+  it('offers only approved active models and lets users restore the document model', async () => {
+    const user = userEvent.setup()
     const change = vi.fn()
     const { rerender } = render(<QueryEmbeddingSection {...props} onChange={change} />)
     const select = screen.getByRole('combobox', { name: 'form.queryEmbeddingModel' })
-    expect(select).toHaveValue('same')
+    expect(select).toHaveTextContent('form.queryEmbeddingSame')
+    await user.click(select)
     expect(screen.queryByRole('option', { name: 'voyage-3.5' })).not.toBeInTheDocument()
-    fireEvent.change(select, { target: { value: '0' } })
+    await user.click(screen.getByRole('option', { name: 'voyage-4-lite' }))
     expect(change).toHaveBeenCalledWith({ provider: 'voyage', model: 'voyage-4-lite' })
     rerender(
       <QueryEmbeddingSection
@@ -69,11 +73,13 @@ describe('Query embedding selection', () => {
         queryModel={{ provider: 'voyage', model: 'voyage-4-lite' }}
       />,
     )
-    fireEvent.change(select, { target: { value: 'same' } })
+    await user.click(screen.getByRole('combobox', { name: 'form.queryEmbeddingModel' }))
+    await user.click(screen.getByRole('option', { name: 'form.queryEmbeddingSame' }))
     expect(change).toHaveBeenLastCalledWith(null)
   })
 
-  it('keeps incompatible saved selections visible until explicitly cleared', () => {
+  it('keeps incompatible saved selections visible until explicitly cleared', async () => {
+    const user = userEvent.setup()
     render(
       <QueryEmbeddingSection
         {...props}
@@ -84,11 +90,15 @@ describe('Query embedding selection', () => {
     )
     expect(screen.getByRole('alert')).toHaveTextContent('form.queryEmbeddingInvalid')
     expect(screen.getByRole('combobox')).toHaveAttribute('aria-invalid', 'true')
-    expect(screen.getByRole('option', { name: 'voyage-4-lite' })).toBeDisabled()
+    await user.click(screen.getByRole('combobox'))
+    const option = screen.getByRole('option', { name: 'voyage-4-lite' })
+    expect(option).toHaveAttribute('aria-disabled', 'true')
   })
 
-  it('leaves only the document default for unsupported datasets', () => {
+  it('leaves only the document default for unsupported datasets', async () => {
+    const user = userEvent.setup()
     render(<QueryEmbeddingSection {...props} enabled={false} />)
+    await user.click(screen.getByRole('combobox'))
     expect(screen.getAllByRole('option')).toHaveLength(1)
     expect(screen.getByText('form.queryEmbeddingUnsupported')).toBeInTheDocument()
   })

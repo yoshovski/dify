@@ -1,7 +1,7 @@
 """Resolve a query override only for operator-verified Voyage 4 embedding spaces."""
 
 from configs import dify_config
-from configs.feature.voyage_query_embedding import VoyageQueryEmbeddingProfile
+from configs.feature.voyage_query_embedding import VoyageQueryEmbeddingProfile, is_voyage_four_model
 from core.entities.embedding_type import EmbeddingInputType
 from core.model_manager import ModelManager
 from core.rag.embedding.cached_embedding import CacheEmbedding
@@ -35,25 +35,75 @@ def validate_query_model(dataset: Dataset, *, check_models: bool = False) -> Voy
         None,
     )
     if profile is None:
-        raise ValueError("This document/query pair is not an approved Voyage 4 embedding space")
+        if (
+            not dify_config.VOYAGE_QUERY_EMBEDDING_PROFILES
+            and dataset.embedding_model_provider == provider
+            and is_voyage_four_model(dataset.embedding_model)
+            and is_voyage_four_model(model)
+        ):
+            profile = VoyageQueryEmbeddingProfile(
+                tenant_id=dataset.tenant_id,
+                provider=provider,
+                document_model=dataset.embedding_model,
+                query_model=model,
+                dimensions=1024,
+                encoding="float",
+            )
+        else:
+            raise ValueError("This document/query pair is not an approved Voyage 4 embedding space")
     if check_models:
         manager = ModelManager.for_tenant(tenant_id=dataset.tenant_id)
-        for name in (profile.document_model, profile.query_model):
-            instance = manager.get_model_instance(
-                tenant_id=dataset.tenant_id,
-                provider=profile.provider,
-                model_type=ModelType.TEXT_EMBEDDING,
-                model=name,
-            )
+        doc_instance = manager.get_model_instance(
+            tenant_id=dataset.tenant_id,
+            provider=profile.provider,
+            model_type=ModelType.TEXT_EMBEDDING,
+            model=profile.document_model,
+        )
+        query_instance = manager.get_model_instance(
+            tenant_id=dataset.tenant_id,
+            provider=profile.provider,
+            model_type=ModelType.TEXT_EMBEDDING,
+            model=profile.query_model,
+        )
+        for instance, name in ((doc_instance, profile.document_model), (query_instance, profile.query_model)):
             schema = instance.model_type_instance.get_model_schema(name, instance.credentials)
             if schema is None or (schema.features and ModelFeature.VISION in schema.features):
                 raise ValueError("Separate query models require available text-only embedding models")
-            # Plugin schemas do not expose embedding dimensions consistently. Verify actual
-            # output using fixed, non-customer text before persisting an override.
-            input_type = EmbeddingInputType.DOCUMENT if name == profile.document_model else EmbeddingInputType.QUERY
-            result = instance.invoke_text_embedding(texts=["Embedding compatibility validation"], input_type=input_type)
-            if len(result.embeddings) != 1 or len(result.embeddings[0]) != profile.dimensions:
-                raise ValueError("Embedding dimensions must match the approved Voyage 4 profile")
+
+        doc_result = doc_instance.invoke_text_embedding(
+            texts=["Embedding compatibility validation"], input_type=EmbeddingInputType.DOCUMENT
+        )
+        query_result = query_instance.invoke_text_embedding(
+            texts=["Embedding compatibility validation"], input_type=EmbeddingInputType.QUERY
+        )
+        if len(doc_result.embeddings) != 1 or len(query_result.embeddings) != 1:
+            raise ValueError("Embedding compatibility validation failed")
+
+        doc_dim = len(doc_result.embeddings[0])
+        query_dim = len(query_result.embeddings[0])
+        if doc_dim != query_dim:
+            raise ValueError(
+                f"Embedding dimensions must match: document model output {doc_dim} vs query model output {query_dim}"
+            )
+
+        is_explicit = any(
+            p.provider == profile.provider
+            and p.document_model == profile.document_model
+            and p.query_model == profile.query_model
+            for p in approved_profiles(dataset.tenant_id)
+        )
+        if is_explicit and doc_dim != profile.dimensions:
+            raise ValueError("Embedding dimensions must match the approved Voyage 4 profile")
+
+        if doc_dim in (256, 512, 1024, 2048) and doc_dim != profile.dimensions:
+            profile = VoyageQueryEmbeddingProfile(
+                tenant_id=profile.tenant_id,
+                provider=profile.provider,
+                document_model=profile.document_model,
+                query_model=profile.query_model,
+                dimensions=doc_dim,
+                encoding=profile.encoding,
+            )
     return profile
 
 
