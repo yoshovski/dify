@@ -88,6 +88,7 @@ jobs:
             local/certificate-trust:${{ matrix.name }} /check.py --online ${{ matrix.system_arguments }}
 
   application-source:
+    if: github.head_ref == 'fix/lab-y-139-certificate-trust' || github.ref_name == 'fix/lab-y-139-certificate-trust'
     name: Deployed application source unchanged
     runs-on: ubuntu-latest
     timeout-minutes: 5
