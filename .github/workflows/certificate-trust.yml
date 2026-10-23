@@ -8,6 +8,7 @@ on:
       - "**/uv.lock"
       - "**/requirements*.txt"
       - "scripts/check_certificate_trust.py"
+      - "scripts/check_node_certificate_trust.cjs"
       - ".github/workflows/certificate-trust.yml"
   workflow_dispatch:
 
@@ -95,7 +96,7 @@ jobs:
       - name: Compare application source with the deployed baseline
         run: |
           git fetch --no-tags --depth=1 origin a48f5eccb5e122d92c143a61fe4df106f88456b6
-          git diff --exit-code a48f5eccb5e122d92c143a61fe4df106f88456b6 HEAD -- api dify-agent dify-agent-runtime ':(exclude)**/Dockerfile*' ':(exclude)**/pyproject.toml' ':(exclude)**/uv.lock'
+          git diff --exit-code a48f5eccb5e122d92c143a61fe4df106f88456b6 HEAD -- api dify-agent dify-agent-runtime web ':(exclude)**/Dockerfile*' ':(exclude)**/pyproject.toml' ':(exclude)**/uv.lock' ':(exclude)dify-agent/tests/local/test_packaging.py'
 
   agent-tests:
     name: Dify v10 agent unit tests
@@ -113,3 +114,31 @@ jobs:
       - run: uv lock --check
       - run: uv sync --frozen --extra server --dev
       - run: uv run --frozen --extra server python -m pytest -q tests/local tests/docs
+
+  web-image:
+    name: Dify web Node certificate trust
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          platforms: linux/amd64
+          pull: true
+          no-cache: true
+          load: true
+          push: false
+          tags: local/certificate-trust:web
+      - name: Verify Node and OS certificate trust
+        run: |
+          docker run --rm --read-only --network none --cap-drop ALL \
+            --security-opt no-new-privileges --entrypoint node \
+            --volume "$PWD/scripts/check_node_certificate_trust.cjs:/check.cjs:ro" \
+            local/certificate-trust:web /check.cjs
+          docker run --rm --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --entrypoint node \
+            --volume "$PWD/scripts/check_node_certificate_trust.cjs:/check.cjs:ro" \
+            local/certificate-trust:web /check.cjs --online

@@ -1,5 +1,5 @@
 # base image
-ARG NODE_VERSION=24.20.0
+ARG NODE_VERSION=24.22.1
 FROM node:${NODE_VERSION}-alpine AS base
 LABEL maintainer="takatost@gmail.com"
 
@@ -9,7 +9,7 @@ LABEL maintainer="takatost@gmail.com"
 # if you located in China, you can use taobao registry to speed up
 # RUN npm config set registry https://registry.npmmirror.com
 
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache tzdata ca-certificates && update-ca-certificates
 RUN corepack enable
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
