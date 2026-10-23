@@ -9,14 +9,6 @@ on:
       - "**/requirements*.txt"
       - "scripts/check_certificate_trust.py"
       - ".github/workflows/certificate-trust.yml"
-  push:
-    branches: ["fix/**"]
-    paths:
-      - "**/Dockerfile*"
-      - "**/pyproject.toml"
-      - "**/uv.lock"
-      - "scripts/check_certificate_trust.py"
-      - ".github/workflows/certificate-trust.yml"
   workflow_dispatch:
 
 permissions:
