@@ -5,7 +5,7 @@
 #   docker build -f docker/Dockerfile -t dify-agent-local-sandbox:local .
 
 # ── Go build stage ───────────────────────────────────────────────────────────
-FROM golang:1.26 AS go-builder
+FROM golang:1.26.10 AS go-builder
 
 WORKDIR /src
 COPY go.mod go.sum ./
@@ -20,9 +20,9 @@ RUN CGO_ENABLED=0 go build -o /bin/shellctl ./cmd/shellctl && \
 # ── Runtime stage ────────────────────────────────────────────────────────────
 FROM python:3.12-slim-bookworm AS production
 
-ARG NODE_VERSION=24.20.0
+ARG NODE_VERSION=24.22.1
 ARG PNPM_VERSION=11.9.0
-ARG UV_VERSION=0.8.9
+ARG UV_VERSION=0.13.4
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -60,6 +60,8 @@ RUN apt-get update \
     && npm install --global "pnpm@${PNPM_VERSION}" \
     && npm cache clean --force \
     && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --no-cache-dir "pip @ https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
 
 RUN python -m pip install --no-cache-dir "uv==${UV_VERSION}"
 

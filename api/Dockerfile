@@ -4,7 +4,14 @@ FROM python:3.12-slim-bookworm AS base
 WORKDIR /app/api
 
 # Install uv
-ENV UV_VERSION=0.8.9
+ENV UV_VERSION=0.13.4
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --no-cache-dir "pip @ https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
 
 RUN pip install --no-cache-dir uv==${UV_VERSION}
 
@@ -53,7 +60,7 @@ WORKDIR /app/api
 
 # Create non-root user
 ARG dify_uid=1001
-ARG NODE_PACKAGE_VERSION=24.20.0-1nodesource1
+ARG NODE_PACKAGE_VERSION=24.22.1-1nodesource1
 ARG NODESOURCE_KEY_FPR=6F71F525282841EEDAF851B42F59B5F99B1BE0B4
 RUN groupadd -r -g ${dify_uid} dify && \
     useradd -r -u ${dify_uid} -g ${dify_uid} -s /bin/bash dify && \
