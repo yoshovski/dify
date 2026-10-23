@@ -9,13 +9,21 @@ on:
       - "**/requirements*.txt"
       - "scripts/check_certificate_trust.py"
       - ".github/workflows/certificate-trust.yml"
+  push:
+    branches: ["fix/**"]
+    paths:
+      - "**/Dockerfile*"
+      - "**/pyproject.toml"
+      - "**/uv.lock"
+      - "scripts/check_certificate_trust.py"
+      - ".github/workflows/certificate-trust.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: certificate-trust-${{ github.event.pull_request.number || github.ref }}
+  group: certificate-trust-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
