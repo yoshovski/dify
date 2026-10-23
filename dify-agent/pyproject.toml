@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
+    "certifi>=2026.10.19",
     "httpx==0.28.1",
     "httpx2>=2.5.0,<3.0.0",
     "pydantic>=2.12.5,<2.13",
@@ -78,3 +79,6 @@ docs = [
 [build-system]
 requires = ["setuptools>=83.0.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.uv]
+required-version = ">=0.13.4"
