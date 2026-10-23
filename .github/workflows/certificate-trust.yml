@@ -85,3 +85,31 @@ jobs:
             --entrypoint ${{ matrix.system_python }} \
             --volume "$PWD/scripts/check_certificate_trust.py:/check.py:ro" \
             local/certificate-trust:${{ matrix.name }} /check.py --online ${{ matrix.system_arguments }}
+
+  application-source:
+    name: Deployed application source unchanged
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compare application source with the deployed baseline
+        run: |
+          git fetch --no-tags --depth=1 origin a48f5eccb5e122d92c143a61fe4df106f88456b6
+          git diff --exit-code a48f5eccb5e122d92c143a61fe4df106f88456b6 HEAD -- api dify-agent dify-agent-runtime ':(exclude)**/Dockerfile*' ':(exclude)**/pyproject.toml' ':(exclude)**/uv.lock'
+
+  agent-tests:
+    name: Dify v10 agent unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: dify-agent
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.4"
+          python-version: "3.12"
+      - run: uv lock --check
+      - run: uv sync --frozen --extra server --dev
+      - run: uv run --frozen --extra server python -m pytest -q tests/local tests/docs
