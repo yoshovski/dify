@@ -1,0 +1,13 @@
+# The standalone agent build only needs its own package and locked dependencies.
+*
+!dify-agent/
+!dify-agent/**
+
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.env
+**/*.env.*

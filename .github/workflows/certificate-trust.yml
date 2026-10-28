@@ -1,0 +1,145 @@
+name: Certificate trust
+
+on:
+  pull_request:
+    paths:
+      - "**/Dockerfile*"
+      - "**/pyproject.toml"
+      - "**/uv.lock"
+      - "**/requirements*.txt"
+      - "scripts/check_certificate_trust.py"
+      - "scripts/check_node_certificate_trust.cjs"
+      - ".github/workflows/certificate-trust.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: certificate-trust-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: .
+            dockerfile: api/Dockerfile
+            arguments: "--require-certifi"
+            system_arguments: "--require-pip"
+            system_python: /usr/local/bin/python
+          - name: agent
+            context: .
+            dockerfile: dify-agent/Dockerfile
+            arguments: "--require-certifi"
+            system_arguments: "--require-pip"
+            system_python: /usr/local/bin/python
+          - name: sandbox
+            context: dify-agent-runtime
+            dockerfile: dify-agent-runtime/docker/Dockerfile
+            arguments: ""
+            system_arguments: "--require-pip"
+            system_python: /usr/local/bin/python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the runtime image with fresh base layers
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          pull: true
+          no-cache: true
+          load: true
+          push: false
+          tags: local/certificate-trust:${{ matrix.name }}
+      - name: Check application certificate stores and runtime
+        run: |
+          docker run --rm --read-only --network none --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --entrypoint python \
+            --volume "$PWD/scripts/check_certificate_trust.py:/check.py:ro" \
+            local/certificate-trust:${{ matrix.name }} /check.py ${{ matrix.arguments }}
+      - name: Check the base interpreter and bundled pip trust
+        run: |
+          docker run --rm --read-only --network none --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --entrypoint ${{ matrix.system_python }} \
+            --volume "$PWD/scripts/check_certificate_trust.py:/check.py:ro" \
+            local/certificate-trust:${{ matrix.name }} /check.py ${{ matrix.system_arguments }}
+      - name: Verify outbound HTTPS rejection with a valid control
+        timeout-minutes: 4
+        run: |
+          docker run --rm --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --entrypoint python \
+            --volume "$PWD/scripts/check_certificate_trust.py:/check.py:ro" \
+            local/certificate-trust:${{ matrix.name }} /check.py --online ${{ matrix.arguments }}
+          docker run --rm --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --entrypoint ${{ matrix.system_python }} \
+            --volume "$PWD/scripts/check_certificate_trust.py:/check.py:ro" \
+            local/certificate-trust:${{ matrix.name }} /check.py --online ${{ matrix.system_arguments }}
+
+  application-source:
+    if: github.head_ref == 'fix/lab-y-139-certificate-trust' || github.ref_name == 'fix/lab-y-139-certificate-trust'
+    name: Deployed application source unchanged
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Compare application source with the deployed baseline
+        run: |
+          git fetch --no-tags --depth=1 origin a48f5eccb5e122d92c143a61fe4df106f88456b6
+          git diff --exit-code a48f5eccb5e122d92c143a61fe4df106f88456b6 HEAD -- api dify-agent dify-agent-runtime web ':(exclude)**/Dockerfile*' ':(exclude)**/pyproject.toml' ':(exclude)**/uv.lock' ':(exclude)dify-agent/tests/local/test_packaging.py'
+
+  agent-tests:
+    name: Dify v10 agent unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: dify-agent
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.13.4"
+          python-version: "3.12"
+      - run: uv lock --check
+      - run: uv sync --frozen --extra server --dev
+      - run: uv run --frozen --extra server python -m pytest -q tests/local tests/docs
+
+  web-image:
+    name: Dify web Node certificate trust
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          platforms: linux/amd64
+          pull: true
+          no-cache: true
+          load: true
+          push: false
+          tags: local/certificate-trust:web
+      - name: Verify Node and OS certificate trust
+        run: |
+          docker run --rm --read-only --network none --cap-drop ALL \
+            --security-opt no-new-privileges --entrypoint node \
+            --volume "$PWD/scripts/check_node_certificate_trust.cjs:/check.cjs:ro" \
+            local/certificate-trust:web /check.cjs
+          docker run --rm --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --entrypoint node \
+            --volume "$PWD/scripts/check_node_certificate_trust.cjs:/check.cjs:ro" \
+            local/certificate-trust:web /check.cjs --online
